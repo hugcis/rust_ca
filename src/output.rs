@@ -2,7 +2,7 @@ use crate::Automaton;
 use gif::{Encoder, Frame};
 use std::fs::File;
 
-pub fn write_to_gif_file<'a>(fname: Option<&str>, autom: &'a mut Automaton<'a>, scale: u16) {
+pub fn write_to_gif_file<'a>(fname: Option<&str>, autom: &'a mut Automaton, scale: u16, steps: u32, skip: u32) {
     let size = autom.size as u16;
     let scaled_size = size * scale;
     let states = autom.states;
@@ -11,7 +11,7 @@ pub fn write_to_gif_file<'a>(fname: Option<&str>, autom: &'a mut Automaton<'a>, 
     let mut g = Encoder::new(&mut im_file, scaled_size, scaled_size, &[]).unwrap();
     g.set_repeat(gif::Repeat::Infinite).unwrap();
 
-    let u = autom.skipped_iter(1000, 10);
+    let u = autom.skipped_iter(steps, skip);
     let mut c = 0;
     let palette = make_palette(states);
     let frames = u.map(|s| {

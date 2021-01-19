@@ -1,3 +1,4 @@
+#![feature(test)]
 use crate::automaton::Automaton;
 use crate::rule::Rule;
 use std::env;
@@ -24,6 +25,8 @@ fn main() {
         "N_STATES",
     );
     opts.optopt("r", "radius", "radius of the rule", "RADIUS");
+    opts.optopt("t", "steps", "simulation time", "N_STEPS");
+    opts.optopt("k", "skip", "steps to skip every timestep", "SKIP");
     opts.optopt("f", "file", "rule file", "FILE");
     opts.optflag("h", "help", "print this help menu");
 
@@ -57,6 +60,15 @@ fn main() {
         .opt_get("r")
         .expect("Error parsing radius parameter")
         .unwrap_or(2);
+    let steps = matches
+        .opt_get("t")
+        .expect("Error parsing steps parameter")
+        .unwrap_or(100);
+    let skip = matches
+        .opt_get("k")
+        .expect("Error parsing skip parameter")
+        .unwrap_or(1);
+
     let r = match matches.opt_str("f") {
         Some(fname) => Rule::from_file(&fname).unwrap(),
         None => Rule::random(horizon, states),
@@ -65,8 +77,8 @@ fn main() {
         states,
         size.into(),
         vec![0; size as usize * size as usize],
-        &r,
+        r,
     );
     a.random_init();
-    output::write_to_gif_file(Some("test.gif"), &mut a, scale);
+    output::write_to_gif_file(Some("test.gif"), &mut a, scale, steps, skip);
 }
