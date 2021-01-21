@@ -1,5 +1,7 @@
 #![feature(test)]
-use crate::automaton::Automaton;
+extern crate test;
+
+use crate::automaton::{Automaton, TiledAutomaton, TILE_SIZE};
 use crate::rule::Rule;
 use std::env;
 
@@ -73,12 +75,52 @@ fn main() {
         Some(fname) => Rule::from_file(&fname).unwrap(),
         None => Rule::random(horizon, states),
     };
-    let mut a = Automaton::new(
-        states,
-        size.into(),
-        vec![0; size as usize * size as usize],
-        r,
-    );
-    a.random_init();
-    output::write_to_gif_file(Some("test.gif"), &mut a, scale, steps, skip);
+    if size as usize % (TILE_SIZE - 1) == 0 {
+        let mut a = TiledAutomaton::new(states, size.into(), r);
+        a.random_init();
+        output::write_to_gif_file_tiled(Some("test.gif"), &mut a, scale, steps, skip);
+    } else {
+        let mut a = Automaton::new(
+            states,
+            size.into(),
+            vec![0; size as usize * size as usize],
+            r,
+        );
+        a.random_init();
+        output::write_to_gif_file(Some("test.gif"), &mut a, scale, steps, skip);
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::test::Bencher;
+    use crate::automaton::{Automaton, TiledAutomaton};
+    use crate::rule::Rule;
+    use crate::output;
+
+    #[bench]
+    fn write_autom(b: &mut Bencher) {
+        let r = Rule::random(1, 3);
+        let size: u16 = 512;
+        let mut a = Automaton::new(
+            3,
+            size.into(),
+            vec![0; size as usize * size as usize],
+            r,
+        );
+        a.random_init();
+        b.iter(|| output::write_to_gif_file(Some("test.gif"), &mut a, 1, 10, 1))
+    }
+    #[bench]
+    fn write_autom_tiled(b: &mut Bencher) {
+        let r = Rule::random(1, 3);
+        let size: u16 = 512;
+        let mut a = TiledAutomaton::new(
+            3,
+            size.into(),
+            r,
+        );
+        a.random_init();
+        b.iter(|| output::write_to_gif_file_tiled(Some("test.gif"), &mut a, 1, 10, 1))
+    }
 }
