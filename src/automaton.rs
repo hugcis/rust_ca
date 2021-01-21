@@ -3,9 +3,9 @@ use crate::rule::Rule;
 use rand::Rng;
 
 const HORIZON: i8 = 1;
-const TILE_SIZE: usize = 513;
+pub const TILE_SIZE: usize = 129;
 
-type TiledGrid = Vec<[u8; TILE_SIZE * TILE_SIZE]>;
+pub type TiledGrid = Vec<[u8; TILE_SIZE * TILE_SIZE]>;
 
 pub struct TiledAutomaton {
     pub size: usize,
@@ -19,7 +19,7 @@ pub struct TiledAutomaton {
 
 impl TiledAutomaton {
     pub fn new(states: u8, size: usize, rule: Rule) -> TiledAutomaton {
-        let s = size / TILE_SIZE;
+        let s = size / (TILE_SIZE - 1);
         TiledAutomaton {
             states,
             n_tiles: s,
@@ -487,19 +487,19 @@ mod tests {
 
     #[bench]
     fn bench_single_update_512_tiled(b: &mut Bencher) {
-        let mut a = get_random_tiled_auto(512, 3);
+        let mut a = super::test::black_box(get_random_tiled_auto(512, 3));
         b.iter(|| a.update());
     }
 
     #[bench]
     fn bench_single_update_1024_tiled(b: &mut Bencher) {
-        let mut a = get_random_tiled_auto(1024, 4);
+        let mut a = super::test::black_box(get_random_tiled_auto(1024, 3));
         b.iter(|| a.update());
     }
 
     #[bench]
     fn bench_single_update_2048_tiled(b: &mut Bencher) {
-        let mut a = get_random_tiled_auto(2048, 4);
+        let mut a = super::test::black_box(get_random_tiled_auto(2048, 4));
         b.iter(|| a.update());
     }
 }
