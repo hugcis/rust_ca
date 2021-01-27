@@ -3,9 +3,9 @@ use crate::automaton::{TiledGrid, TILE_SIZE};
 use gif::{Encoder, Frame};
 use std::fs::File;
 
-pub fn write_to_gif_file<'a>(
+pub fn write_to_gif_file(
     fname: Option<&str>,
-    autom: &'a mut Automaton,
+    autom: &mut Automaton,
     scale: u16,
     steps: u32,
     skip: u32,
@@ -38,9 +38,9 @@ pub fn write_to_gif_file<'a>(
     }
 }
 
-pub fn write_to_gif_file_tiled<'a>(
+pub fn write_to_gif_file_tiled(
     fname: Option<&str>,
-    autom: &'a mut TiledAutomaton,
+    autom: &mut TiledAutomaton,
     scale: u16,
     steps: u32,
     skip: u32,
