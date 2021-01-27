@@ -1,5 +1,5 @@
-use crate::{Automaton, TiledAutomaton};
 use crate::automaton::{TiledGrid, TILE_SIZE};
+use crate::{Automaton, TiledAutomaton};
 use gif::{Encoder, Frame};
 use std::fs::File;
 
@@ -72,6 +72,7 @@ pub fn write_to_gif_file_tiled(
         g.write_frame(&frame).expect("Error writing frame");
     }
 }
+
 fn make_palette(states: u8) -> Vec<u8> {
     let col_1 = [255., 255., 255.];
     let col_2 = [0., 0., 255.];
@@ -108,8 +109,11 @@ fn duplicate_array_tiled(s: TiledGrid, size: usize, scale: u16) -> Vec<u8> {
         for b in 0..scaled_size {
             let i = a / scale as usize;
             let j = b / scale as usize;
-            let item = s[(i / (TILE_SIZE - 1)) * n_tiles + (j / (TILE_SIZE - 1))]
-                [(i % (TILE_SIZE - 1)) * (TILE_SIZE - 1) + (j % (TILE_SIZE - 1))];
+            let tx = i / (TILE_SIZE - 1);
+            let ty = j / (TILE_SIZE - 1);
+            let x = i % (TILE_SIZE - 1);
+            let y = j % (TILE_SIZE - 1);
+            let item = s[tx * n_tiles + ty][x * TILE_SIZE + y];
             out.push(item);
         }
     }

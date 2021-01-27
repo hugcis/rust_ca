@@ -106,6 +106,7 @@ fn get_rand_state(lambdas: &[f64], states: u8) -> u8 {
     lambdas
         .iter()
         .enumerate()
+        .rev()
         .find_map(|(idx, l)| if val >= *l { Some(idx as u8 + 1) } else { None })
         .unwrap_or(0)
 }
