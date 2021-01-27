@@ -64,7 +64,6 @@ impl TiledAutomaton {
         let n_tiles = self.n_tiles;
         let states = self.states as usize;
         let grid = self.grid()[tx * n_tiles + ty];
-        let mut prev_grid = self.prev_grid()[tx * n_tiles + ty];
         for i in HORIZON as usize..TILE_SIZE - HORIZON as usize {
             for j in HORIZON as usize..TILE_SIZE - HORIZON as usize {
                 let is = i as isize;
@@ -81,7 +80,7 @@ impl TiledAutomaton {
                         pw += 1;
                     }
                 }
-                prev_grid[i * TILE_SIZE + j] = self.rule.get(ind);
+                self.prev_grid()[tx * n_tiles + ty][i * TILE_SIZE + j] = self.rule.get(ind);
             }
         }
     }
@@ -96,10 +95,6 @@ impl TiledAutomaton {
         let lnorth_tile = self.grid()[prev_x * n_tiles + ty];
         let lwest_tile = self.grid()[tx * n_tiles + prev_y];
         let lnorthwest_tile = self.grid()[prev_x * n_tiles + prev_y];
-        let mut main_tile = self.prev_grid()[tx * n_tiles + ty];
-        let mut north_tile = self.prev_grid()[prev_x * n_tiles + ty];
-        let mut west_tile = self.prev_grid()[tx * n_tiles + prev_y];
-        let mut northwest_tile = self.prev_grid()[prev_x * n_tiles + prev_y];
 
         for i in 1..TILE_SIZE - 1 {
             let is = i as isize;
@@ -122,8 +117,8 @@ impl TiledAutomaton {
                     pw += 1;
                 }
             }
-            main_tile[i * TILE_SIZE] = self.rule.get(ind);
-            west_tile[i * TILE_SIZE + (TILE_SIZE - 1)] = self.rule.get(ind);
+            self.prev_grid()[tx * n_tiles + ty][i * TILE_SIZE] = self.rule.get(ind);
+            self.prev_grid()[tx * n_tiles + prev_y][i * TILE_SIZE + (TILE_SIZE - 1)] = self.rule.get(ind);
         }
         for j in 1..TILE_SIZE - 1 {
             let js = j as isize;
@@ -144,8 +139,8 @@ impl TiledAutomaton {
                     pw += 1;
                 }
             }
-            main_tile[j] = self.rule.get(ind);
-            north_tile[(TILE_SIZE - 1) * TILE_SIZE + j] = self.rule.get(ind);
+            self.prev_grid()[tx * n_tiles + ty][j] = self.rule.get(ind);
+            self.prev_grid()[prev_x * n_tiles + ty][(TILE_SIZE - 1) * TILE_SIZE + j] = self.rule.get(ind);
         }
 
         let mut ind: usize = 0;
@@ -175,10 +170,10 @@ impl TiledAutomaton {
                 pw += 1;
             }
         }
-        main_tile[0] = self.rule.get(ind);
-        north_tile[(TILE_SIZE - 1) * TILE_SIZE] = self.rule.get(ind);
-        west_tile[TILE_SIZE - 1] = self.rule.get(ind);
-        northwest_tile[(TILE_SIZE - 1) * TILE_SIZE + TILE_SIZE - 1] = self.rule.get(ind);
+        self.prev_grid()[tx * n_tiles + ty][0] = self.rule.get(ind);
+        self.prev_grid()[prev_x * n_tiles + ty][(TILE_SIZE - 1) * TILE_SIZE] = self.rule.get(ind);
+        self.prev_grid()[tx * n_tiles + prev_y][TILE_SIZE - 1] = self.rule.get(ind);
+        self.prev_grid()[prev_x * n_tiles + prev_y][(TILE_SIZE - 1) * TILE_SIZE + TILE_SIZE - 1] = self.rule.get(ind);
     }
 
     #[inline]
@@ -190,14 +185,13 @@ impl TiledAutomaton {
                 self.update_tile(tx, ty);
             }
         }
-
         //Bounds update
         for tx in 0..bounds_high {
             for ty in 0..bounds_high {
                 self.update_tile_boundaries(tx, ty);
             }
         }
-
+        // Flip buffer choice
         self.flop = !self.flop;
     }
 
