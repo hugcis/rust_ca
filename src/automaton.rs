@@ -3,7 +3,7 @@ use crate::rule::Rule;
 use rand::Rng;
 
 const HORIZON: i8 = 1;
-pub const TILE_SIZE: usize = 129;
+pub const TILE_SIZE: usize = 257;
 
 pub type TiledGrid = Vec<[u8; TILE_SIZE * TILE_SIZE]>;
 
@@ -113,8 +113,8 @@ impl TiledAutomaton {
                             as usize;
                         lwest_tile[idx] as usize
                     } else {
-                        let idx = ((is + isize::from(a)) * (TILE_SIZE as isize)
-                            + (0 + isize::from(b))) as usize;
+                        let idx = ((is + isize::from(a)) * (TILE_SIZE as isize) + isize::from(b))
+                            as usize;
                         lmain_tile[idx] as usize
                     };
                     let power = states.pow(pw);
@@ -122,7 +122,7 @@ impl TiledAutomaton {
                     pw += 1;
                 }
             }
-            main_tile[i * TILE_SIZE + 0] = self.rule.get(ind);
+            main_tile[i * TILE_SIZE] = self.rule.get(ind);
             west_tile[i * TILE_SIZE + (TILE_SIZE - 1)] = self.rule.get(ind);
         }
         for j in 1..TILE_SIZE - 1 {
@@ -136,7 +136,7 @@ impl TiledAutomaton {
                             + (js + isize::from(b))) as usize;
                         lnorth_tile[idx] as usize
                     } else {
-                        let idx = (0 * (TILE_SIZE as isize) + (js + isize::from(b))) as usize;
+                        let idx = (js + isize::from(b)) as usize;
                         lmain_tile[idx] as usize
                     };
                     let power = states.pow(pw);
@@ -176,8 +176,8 @@ impl TiledAutomaton {
             }
         }
         main_tile[0] = self.rule.get(ind);
-        north_tile[(TILE_SIZE - 1) * TILE_SIZE + 0] = self.rule.get(ind);
-        west_tile[0 * TILE_SIZE + TILE_SIZE - 1] = self.rule.get(ind);
+        north_tile[(TILE_SIZE - 1) * TILE_SIZE] = self.rule.get(ind);
+        west_tile[TILE_SIZE - 1] = self.rule.get(ind);
         northwest_tile[(TILE_SIZE - 1) * TILE_SIZE + TILE_SIZE - 1] = self.rule.get(ind);
     }
 
