@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 getopts = "0.2"
-gif = "0.11.1"
-rand = "0.8.2"
-flate2 = "1.0.19"
+gif = "0.11"
+rand = "0.8"
+flate2 = "1.0"
+rand_distr = "0.4"
