@@ -231,6 +231,7 @@ pub struct TiledAutomatonIterator<'a> {
     steps: Option<u32>,
     ct: u32,
 }
+
 impl Iterator for TiledAutomatonIterator<'_> {
     type Item = TiledGrid;
     fn next(&mut self) -> Option<TiledGrid> {

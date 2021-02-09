@@ -19,7 +19,7 @@ where
     let palette = make_palette(states);
     let frames = autom_iterator.map(|grid| {
         let frame = Frame::from_palette_pixels(scaled_size, scaled_size, &grid, &palette, None);
-        print!("\rProcessing image {}/{}", c + 1, steps);
+        eprint!("\rProcessing image {}/{}", c + 1, steps / skip);
         c += 1;
         frame
     });
