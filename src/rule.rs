@@ -1,13 +1,37 @@
+extern crate rand_distr;
+
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
+use std::io::Write;
+use std::str::FromStr;
 
+use flate2::read::ZlibDecoder;
+use flate2::write::ZlibEncoder;
+use flate2::Compression;
 use rand::Rng;
 use rand_distr::Dirichlet;
 use rand_distr::Distribution;
-use flate2::read::ZlibDecoder;
 
-const ALPHA: f64 = 0.4;
+const ALPHA: f64 = 0.2;
+
+pub enum SamplingMode {
+    Uniform,
+    Dirichlet,
+}
+
+// Implement the trait
+impl FromStr for SamplingMode {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "uniform" => Ok(SamplingMode::Uniform),
+            "dirichlet" => Ok(SamplingMode::Dirichlet),
+            _ => Err("no match"),
+        }
+    }
+}
 
 pub struct Rule {
     pub horizon: i8,
@@ -32,6 +56,7 @@ impl Rule {
         self.table[index]
     }
 
+    /// Create a random rule with uniformly sampled transitions.
     pub fn random(horizon: i8, states: u8) -> Rule {
         let mut rng = rand::thread_rng();
         let big_bound: u64 = (states as u64).pow((2 * horizon + 1).pow(2).try_into().unwrap());
@@ -43,6 +68,8 @@ impl Rule {
         }
     }
 
+    /// Create a random rule with transitions sampled according to a Dirichlet
+    /// distribution with parameter `alpha`.
     pub fn random_dirichlet(horizon: i8, states: u8, alpha: Option<f64>) -> Rule {
         let alpha = match alpha {
             Some(v) => v,
@@ -93,6 +120,20 @@ impl Rule {
         Ok(Rule::new(horizon, states, table))
     }
 
+    /// Write a rule to a specified filename.
+    pub fn to_file(&self, fname: &str) -> Result<(), std::io::Error> {
+        let f = File::open(fname)?;
+        let mut encoder = ZlibEncoder::new(f, Compression::default());
+        let zero = '0';
+        let mut out_vec = Vec::new();
+        for i in &self.table {
+            out_vec.push(i + zero as u8);
+        }
+        encoder.write(&out_vec)?;
+        encoder.try_finish()
+    }
+
+    /// Perform some checks on the rule to ensure its correctness.
     pub fn check(&self) -> bool {
         self.table.len() as u64
             == (self.states as u64).pow((2 * self.horizon + 1).pow(2).try_into().unwrap())
