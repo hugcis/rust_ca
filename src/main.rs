@@ -20,7 +20,7 @@ use crate::rule::Rule;
 #[derive(Clap)]
 #[clap(
     name = "Rust CA",
-    version = "0.1",
+    version = "0.1.0",
     author = "Hugo Cisneros <hmj.cisneros@gmail.com>"
 )]
 struct Opts {
@@ -42,6 +42,8 @@ struct Opts {
     /// corresponding number of states
     #[clap(short, long)]
     file: Option<String>,
+    #[clap(short, long)]
+    pattern: Option<String>,
     #[clap(short, long, possible_values = &["uniform", "dirichlet"], default_value = "dirichlet")]
     rule_sampling: rule::SamplingMode,
 }
@@ -54,6 +56,7 @@ struct SimulationOpts {
     steps: u32,
     skip: u32,
     rule: Rule,
+    pattern: Option<String>,
 }
 
 fn parse_opts(opts: Opts) -> SimulationOpts {
@@ -81,6 +84,7 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
         steps: opts.steps,
         skip: opts.skip,
         rule,
+        pattern: opts.pattern,
     }
 }
 
@@ -89,10 +93,16 @@ fn main() {
     if opts.size as usize % (TILE_SIZE - 1) == 0 {
         let mut a = TiledAutomaton::new(opts.states, opts.size.into(), opts.rule);
         a.random_init();
+        if let Some(fname) = opts.pattern {
+            a.init_from_pattern(&fname);
+        }
         output::write_to_gif_file(Some("test.gif"), &mut a, opts.scale, opts.steps, opts.skip);
     } else {
         let mut a = Automaton::new(opts.states, opts.size.into(), opts.rule);
         a.random_init();
+        if let Some(fname) = opts.pattern {
+            a.init_from_pattern(&fname);
+        }
         output::write_to_gif_file(Some("test.gif"), &mut a, opts.scale, opts.steps, opts.skip);
     };
 }

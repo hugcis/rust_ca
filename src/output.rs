@@ -26,7 +26,7 @@ where
     for frame in frames {
         g.write_frame(&frame).expect("Error writing frame");
     }
-    print!("\n");
+    println!();
 }
 
 fn make_palette(states: u8) -> Vec<u8> {

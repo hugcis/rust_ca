@@ -32,6 +32,25 @@ impl Automaton {
         }
     }
 
+    pub fn init_from_pattern(&mut self, pattern_fname: &str) {
+        let pattern_spec = self.parse_pattern(pattern_fname).unwrap();
+        assert!(pattern_spec.states <= self.states);
+        assert!(pattern_spec.background < self.states);
+        for i in self.grid().iter_mut() {
+            *i = pattern_spec.background;
+        }
+        let lines = pattern_spec.pattern.len();
+        let cols = pattern_spec.pattern.iter().map(|x| x.len()).max().unwrap();
+        for i in 0..lines {
+            let lin = &pattern_spec.pattern[i];
+            for (j, elem) in lin.iter().enumerate() {
+                let idx =
+                    (i + (self.size / 2) - lines / 2) * self.size + (j - cols / 2 + self.size / 2);
+                self.grid()[idx] = *elem;
+            }
+        }
+    }
+
     #[inline]
     pub fn grid(&mut self) -> &mut Vec<u8> {
         if self.flop {

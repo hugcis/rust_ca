@@ -129,7 +129,7 @@ impl Rule {
         for i in &self.table {
             out_vec.push(i + zero as u8);
         }
-        encoder.write(&out_vec)?;
+        encoder.write_all(&out_vec)?;
         encoder.try_finish()
     }
 

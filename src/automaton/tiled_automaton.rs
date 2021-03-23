@@ -40,6 +40,32 @@ impl TiledAutomaton {
         }
     }
 
+    pub fn init_from_pattern(&mut self, pattern_fname: &str) {
+        let pattern_spec = self.parse_pattern(pattern_fname).unwrap();
+        assert!(pattern_spec.states <= self.states);
+        assert!(pattern_spec.background < self.states);
+        for i in self.grid().iter_mut() {
+            for j in i.iter_mut() {
+                *j = pattern_spec.background;
+            }
+        }
+        let lines = pattern_spec.pattern.len();
+        let cols = pattern_spec.pattern.iter().map(|x| x.len()).max().unwrap();
+        let n_tiles = self.n_tiles;
+        for i in 0..lines {
+            let lin = &pattern_spec.pattern[i];
+            for (j, elem) in lin.iter().enumerate() {
+                let idx_x = i + (self.size / 2) - lines / 2;
+                let idx_y = j - cols / 2 + self.size / 2;
+                let tx = idx_x / TILE_SIZE;
+                let ty = idx_y / TILE_SIZE;
+                let x = idx_x % TILE_SIZE;
+                let y = idx_y % TILE_SIZE;
+                self.grid()[tx * n_tiles + ty][x * TILE_SIZE + y] = *elem;
+            }
+        }
+    }
+
     #[inline]
     pub fn grid(&mut self) -> &mut TiledGrid {
         if self.flop {
