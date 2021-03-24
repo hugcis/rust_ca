@@ -1,14 +1,16 @@
 # Rust Cellular Automata
 
-This is a command line tool to simulate, and search the space of simple cellular
+This is a command line tool to simulate and search the space of simple cellular
 automata (with relatively small neighborhoods).
+
+The tool outputs CA simulations in the form of GIF files.
 
 ## Example
 
 The following command will run a CA with a rule numbered `16855021099980290151`.
 The initial configuration is specified  in `exploding.pat` (by default it is
-random). The CA has 3 states and is 128x128 cells.We want the output GIF file to
-represent 2400 time steps, but displaying only one in 10.
+random). The CA has 3 states and is 128x128 cells. We want the output GIF file to
+represent 2400 time steps, but displaying only 1 in 10.
 ```
 target/release/rust_ca -n 3 -f rules/3_states/16855021099980290151.map.comp \
 -p patterns/exploding.pat -k 10 -s 128 --delay 0 -t 2400 
