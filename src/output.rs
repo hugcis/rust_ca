@@ -2,8 +2,14 @@ use crate::automaton::AutomatonImpl;
 use gif::{Encoder, Frame};
 use std::fs::File;
 
-pub fn write_to_gif_file<T>(fname: Option<&str>, autom: &mut T, scale: u16, steps: u32, skip: u32)
-where
+pub fn write_to_gif_file<T>(
+    fname: Option<&str>,
+    autom: &mut T,
+    scale: u16,
+    steps: u32,
+    skip: u32,
+    delay: u16,
+) where
     T: AutomatonImpl,
 {
     let size = autom.get_size() as u16;
@@ -18,7 +24,8 @@ where
     let mut c = 0;
     let palette = make_palette(states);
     let frames = autom_iterator.map(|grid| {
-        let frame = Frame::from_palette_pixels(scaled_size, scaled_size, &grid, &palette, None);
+        let mut frame = Frame::from_palette_pixels(scaled_size, scaled_size, &grid, &palette, None);
+        frame.delay = delay;
         eprint!("\rProcessing image {}/{}", c + 1, steps / skip);
         c += 1;
         frame

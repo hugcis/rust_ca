@@ -38,6 +38,8 @@ struct Opts {
     skip: u32,
     #[clap(long, default_value = "1")]
     horizon: i8,
+    #[clap(long, default_value = "10")]
+    delay: u16,
     /// File to read a rule from. The file must contain a valid rule for the
     /// corresponding number of states
     #[clap(short, long)]
@@ -55,6 +57,7 @@ struct SimulationOpts {
     _horizon: i8, // Hardcoded for now to 1
     steps: u32,
     skip: u32,
+    delay: u16,
     rule: Rule,
     pattern: Option<String>,
 }
@@ -85,6 +88,7 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
         skip: opts.skip,
         rule,
         pattern: opts.pattern,
+        delay: opts.delay,
     }
 }
 
@@ -96,14 +100,28 @@ fn main() {
         if let Some(fname) = opts.pattern {
             a.init_from_pattern(&fname);
         }
-        output::write_to_gif_file(Some("test.gif"), &mut a, opts.scale, opts.steps, opts.skip);
+        output::write_to_gif_file(
+            Some("test.gif"),
+            &mut a,
+            opts.scale,
+            opts.steps,
+            opts.skip,
+            opts.delay,
+        );
     } else {
         let mut a = Automaton::new(opts.states, opts.size.into(), opts.rule);
         a.random_init();
         if let Some(fname) = opts.pattern {
             a.init_from_pattern(&fname);
         }
-        output::write_to_gif_file(Some("test.gif"), &mut a, opts.scale, opts.steps, opts.skip);
+        output::write_to_gif_file(
+            Some("test.gif"),
+            &mut a,
+            opts.scale,
+            opts.steps,
+            opts.skip,
+            opts.delay,
+        );
     };
 }
 
