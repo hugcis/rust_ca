@@ -11,9 +11,10 @@ random). The CA has 3 states and is 128x128 cells.We want the output GIF file to
 represent 2400 time steps, but displaying only one in 10.
 ```
 target/release/rust_ca -n 3 -f rules/3_states/16855021099980290151.map.comp \
-                                              -p patterns/exploding.pat -k 10 -s 128 --delay 0 -t 2400 
+-p patterns/exploding.pat -k 10 -s 128 --delay 0 -t 2400 
 ```
 This results in the following `test.gif` file: 
+
 ![Example CA GIF](assets/test.gif)
 
 ## Build the tool 
