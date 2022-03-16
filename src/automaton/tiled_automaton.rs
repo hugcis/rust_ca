@@ -1,15 +1,18 @@
-use super::{AutomatonImpl, HORIZON};
+use super::{parse_pattern, AutomatonImpl, HORIZON};
 use crate::rule::Rule;
 use rand::Rng;
+use crate::automaton::duplicate_array;
 
+/// The size of tiles in the tiled cellular automatonf.
 pub const TILE_SIZE: usize = 129;
 
 pub type TiledGrid = Vec<[u8; TILE_SIZE * TILE_SIZE]>;
 
+/// A tiled version of the cellular automaton for faster simulation on large grids.
 pub struct TiledAutomaton {
-    pub size: usize,
-    pub n_tiles: usize,
-    pub states: u8,
+    size: usize,
+    n_tiles: usize,
+    states: u8,
     flop: bool,
     grid1: TiledGrid,
     grid2: TiledGrid,
@@ -17,57 +20,8 @@ pub struct TiledAutomaton {
 }
 
 impl TiledAutomaton {
-    pub fn new(states: u8, size: usize, rule: Rule) -> TiledAutomaton {
-        let s = size / (TILE_SIZE - 1);
-        TiledAutomaton {
-            states,
-            n_tiles: s,
-            size,
-            flop: true,
-            rule,
-            grid1: vec![[0; TILE_SIZE * TILE_SIZE]; s * s],
-            grid2: vec![[0; TILE_SIZE * TILE_SIZE]; s * s],
-        }
-    }
-
-    pub fn random_init(&mut self) {
-        let states = self.states;
-        let mut rng = rand::thread_rng();
-        for i in self.grid().iter_mut() {
-            for j in i.iter_mut() {
-                *j = rng.gen_range(0..states);
-            }
-        }
-    }
-
-    pub fn init_from_pattern(&mut self, pattern_fname: &str) {
-        let pattern_spec = self.parse_pattern(pattern_fname).unwrap();
-        assert!(pattern_spec.states <= self.states);
-        assert!(pattern_spec.background < self.states);
-        for i in self.grid().iter_mut() {
-            for j in i.iter_mut() {
-                *j = pattern_spec.background;
-            }
-        }
-        let lines = pattern_spec.pattern.len();
-        let cols = pattern_spec.pattern.iter().map(|x| x.len()).max().unwrap();
-        let n_tiles = self.n_tiles;
-        for i in 0..lines {
-            let lin = &pattern_spec.pattern[i];
-            for (j, elem) in lin.iter().enumerate() {
-                let idx_x = i + (self.size / 2) - lines / 2;
-                let idx_y = j - cols / 2 + self.size / 2;
-                let tx = idx_x / TILE_SIZE;
-                let ty = idx_y / TILE_SIZE;
-                let x = idx_x % TILE_SIZE;
-                let y = idx_y % TILE_SIZE;
-                self.grid()[tx * n_tiles + ty][x * TILE_SIZE + y] = *elem;
-            }
-        }
-    }
-
     #[inline]
-    pub fn grid(&mut self) -> &mut TiledGrid {
+    fn grid_mut(&mut self) -> &mut TiledGrid {
         if self.flop {
             &mut self.grid1
         } else {
@@ -76,7 +30,7 @@ impl TiledAutomaton {
     }
 
     #[inline]
-    pub fn prev_grid(&mut self) -> &mut TiledGrid {
+    fn prev_grid(&mut self) -> &mut TiledGrid {
         if self.flop {
             &mut self.grid2
         } else {
@@ -85,10 +39,10 @@ impl TiledAutomaton {
     }
 
     #[inline]
-    pub fn update_tile(&mut self, tx: usize, ty: usize) {
+    fn update_tile(&mut self, tx: usize, ty: usize) {
         let n_tiles = self.n_tiles;
         let states = self.states as usize;
-        let grid = self.grid()[tx * n_tiles + ty];
+        let grid = self.grid_mut()[tx * n_tiles + ty];
         for i in HORIZON as usize..TILE_SIZE - HORIZON as usize {
             for j in HORIZON as usize..TILE_SIZE - HORIZON as usize {
                 let is = i as isize;
@@ -111,15 +65,15 @@ impl TiledAutomaton {
     }
 
     #[inline]
-    pub fn update_tile_boundaries(&mut self, tx: usize, ty: usize) {
+    fn update_tile_boundaries(&mut self, tx: usize, ty: usize) {
         let states = self.states as usize;
         let n_tiles = self.n_tiles;
         let prev_x = (tx + self.n_tiles - 1) % self.n_tiles;
         let prev_y = (ty + self.n_tiles - 1) % self.n_tiles;
-        let lmain_tile = self.grid()[tx * n_tiles + ty];
-        let lnorth_tile = self.grid()[prev_x * n_tiles + ty];
-        let lwest_tile = self.grid()[tx * n_tiles + prev_y];
-        let lnorthwest_tile = self.grid()[prev_x * n_tiles + prev_y];
+        let lmain_tile = self.grid_mut()[tx * n_tiles + ty];
+        let lnorth_tile = self.grid_mut()[prev_x * n_tiles + ty];
+        let lwest_tile = self.grid_mut()[tx * n_tiles + prev_y];
+        let lnorthwest_tile = self.grid_mut()[prev_x * n_tiles + prev_y];
 
         for i in 1..TILE_SIZE - 1 {
             let is = i as isize;
@@ -202,9 +156,84 @@ impl TiledAutomaton {
         self.prev_grid()[prev_x * n_tiles + prev_y][(TILE_SIZE - 1) * TILE_SIZE + TILE_SIZE - 1] =
             self.rule.get(ind);
     }
+}
+
+impl AutomatonImpl for TiledAutomaton {
+    fn new(states: u8, size: usize, rule: Rule) -> TiledAutomaton {
+        let s = size / (TILE_SIZE - 1);
+        TiledAutomaton {
+            states,
+            n_tiles: s,
+            size,
+            flop: true,
+            rule,
+            grid1: vec![[0; TILE_SIZE * TILE_SIZE]; s * s],
+            grid2: vec![[0; TILE_SIZE * TILE_SIZE]; s * s],
+        }
+    }
 
     #[inline]
-    pub fn update(&mut self) {
+    fn grid(&self) -> Vec<u8> {
+        duplicate_array_tiled(
+            if self.flop { &self.grid1 } else { &self.grid2 },
+            self.size,
+            1,
+        )
+    }
+
+    fn skipped_iter(
+        &mut self,
+        steps: u32,
+        skip: u32,
+        scale: u16,
+    ) -> Box<dyn Iterator<Item = Vec<u8>> + '_> {
+        let size = self.size;
+        Box::new(
+            TiledAutomatonIterator {
+                autom: self,
+                skip,
+                steps: Some(steps),
+                ct: 0,
+            }.map(move |grid| duplicate_array(&grid, size, scale)),
+         )
+    }
+
+    fn get_size(&self) -> usize {
+        self.size
+    }
+
+    fn get_states(&self) -> u8 {
+        self.states
+    }
+
+    fn init_from_pattern(&mut self, pattern_fname: &str) {
+        let pattern_spec = parse_pattern(pattern_fname).unwrap();
+        assert!(pattern_spec.states <= self.states);
+        assert!(pattern_spec.background < self.states);
+        for i in self.grid_mut().iter_mut() {
+            for j in i.iter_mut() {
+                *j = pattern_spec.background;
+            }
+        }
+        let lines = pattern_spec.pattern.len();
+        let cols = pattern_spec.pattern.iter().map(|x| x.len()).max().unwrap();
+        let n_tiles = self.n_tiles;
+        for i in 0..lines {
+            let lin = &pattern_spec.pattern[i];
+            for (j, elem) in lin.iter().enumerate() {
+                let idx_x = i + (self.size / 2) - lines / 2;
+                let idx_y = j - cols / 2 + self.size / 2;
+                let tx = idx_x / TILE_SIZE;
+                let ty = idx_y / TILE_SIZE;
+                let x = idx_x % TILE_SIZE;
+                let y = idx_y % TILE_SIZE;
+                self.grid_mut()[tx * n_tiles + ty][x * TILE_SIZE + y] = *elem;
+            }
+        }
+    }
+
+    #[inline]
+    fn update(&mut self) {
         let bounds_high = self.n_tiles;
         //Main update
         for tx in 0..bounds_high {
@@ -221,33 +250,15 @@ impl TiledAutomaton {
         // Flip buffer choice
         self.flop = !self.flop;
     }
-}
 
-impl AutomatonImpl for TiledAutomaton {
-    fn skipped_iter(
-        &mut self,
-        steps: u32,
-        skip: u32,
-        scale: u16,
-    ) -> Box<dyn Iterator<Item = Vec<u8>> + '_> {
-        let size = self.size;
-        Box::new(
-            TiledAutomatonIterator {
-                autom: self,
-                skip,
-                steps: Some(steps),
-                ct: 0,
+    fn random_init(&mut self) {
+        let states = self.states;
+        let mut rng = rand::thread_rng();
+        for i in self.grid_mut().iter_mut() {
+            for j in i.iter_mut() {
+                *j = rng.gen_range(0..states);
             }
-            .map(move |grid| duplicate_array_tiled(grid, size, scale)),
-        )
-    }
-
-    fn get_size(&self) -> usize {
-        self.size
-    }
-
-    fn get_states(&self) -> u8 {
-        self.states
+        }
     }
 }
 
@@ -259,8 +270,8 @@ pub struct TiledAutomatonIterator<'a> {
 }
 
 impl Iterator for TiledAutomatonIterator<'_> {
-    type Item = TiledGrid;
-    fn next(&mut self) -> Option<TiledGrid> {
+    type Item = Vec<u8>;
+    fn next(&mut self) -> Option<Vec<u8>> {
         match self.steps {
             Some(v) => {
                 if self.ct >= v {
@@ -287,7 +298,7 @@ impl Iterator for TiledAutomatonIterator<'_> {
 }
 
 #[inline]
-fn duplicate_array_tiled(s: TiledGrid, size: usize, scale: u16) -> Vec<u8> {
+fn duplicate_array_tiled(s: &[[u8; TILE_SIZE * TILE_SIZE]], size: usize, scale: u16) -> Vec<u8> {
     let scaled_size = size * scale as usize;
     let n_tiles = size / TILE_SIZE;
     let mut out = Vec::with_capacity(scaled_size * scaled_size);
@@ -309,7 +320,8 @@ fn duplicate_array_tiled(s: TiledGrid, size: usize, scale: u16) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use crate::rule::Rule;
-    use crate::TiledAutomaton;
+    use crate::automaton::AutomatonImpl;
+    use crate::automaton::TiledAutomaton;
     use test::Bencher;
 
     fn get_random_tiled_auto(size: usize, states: u8) -> TiledAutomaton {

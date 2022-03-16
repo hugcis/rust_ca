@@ -1,3 +1,4 @@
+//! Functions and struct to create and manipulate CA rules.
 extern crate rand_distr;
 
 use std::convert::TryInto;
@@ -15,8 +16,11 @@ use rand_distr::Distribution;
 
 const ALPHA: f64 = 0.2;
 
+/// The sampling mode for the random rule generation.
 pub enum SamplingMode {
+    /// Uniformly sample transitions in the rule table.
     Uniform,
+    /// Sample transitions in the rule table according to a Dirichlet distribution.
     Dirichlet,
 }
 
@@ -33,13 +37,16 @@ impl FromStr for SamplingMode {
     }
 }
 
+/// The rule object. Represents a cellular automaton rule.
 pub struct Rule {
-    pub horizon: i8,
+    horizon: i8,
     states: u8,
     table: Vec<u8>,
 }
 
 impl Rule {
+    /// Construct a new rule from a given number of states, horizon and rule
+    /// table
     pub fn new(horizon: i8, states: u8, table: Vec<u8>) -> Rule {
         let r = Rule {
             horizon,
@@ -52,6 +59,8 @@ impl Rule {
             panic!("Incorrect rule given")
         }
     }
+
+    /// Returns the rule's value at table index `index`.
     pub fn get(&self, index: usize) -> u8 {
         self.table[index]
     }

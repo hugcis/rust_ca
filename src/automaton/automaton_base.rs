@@ -1,9 +1,14 @@
+#![deny(missing_docs)]
 use super::{AutomatonImpl, HORIZON};
-use crate::rule::Rule;
+use crate::automaton::duplicate_array;
+use crate::{automaton::parse_pattern, rule::Rule};
 use rand::Rng;
 
+/// The 2D Automaton object.
 pub struct Automaton {
+    /// The size of the 2D grid CA
     pub size: usize,
+    /// The number of states available in each cell
     pub states: u8,
     flop: bool,
     grid1: Vec<u8>,
@@ -12,47 +17,8 @@ pub struct Automaton {
 }
 
 impl Automaton {
-    pub fn new(states: u8, size: usize, rule: Rule) -> Automaton {
-        let grid = vec![0; size * size];
-        Automaton {
-            states,
-            size,
-            flop: true,
-            rule,
-            grid1: grid.to_vec(),
-            grid2: grid.to_vec(),
-        }
-    }
-
-    pub fn random_init(&mut self) {
-        let states = self.states;
-        let mut rng = rand::thread_rng();
-        for i in self.grid().iter_mut() {
-            *i = rng.gen_range(0..states);
-        }
-    }
-
-    pub fn init_from_pattern(&mut self, pattern_fname: &str) {
-        let pattern_spec = self.parse_pattern(pattern_fname).unwrap();
-        assert!(pattern_spec.states <= self.states);
-        assert!(pattern_spec.background < self.states);
-        for i in self.grid().iter_mut() {
-            *i = pattern_spec.background;
-        }
-        let lines = pattern_spec.pattern.len();
-        let cols = pattern_spec.pattern.iter().map(|x| x.len()).max().unwrap();
-        for i in 0..lines {
-            let lin = &pattern_spec.pattern[i];
-            for (j, elem) in lin.iter().enumerate() {
-                let idx =
-                    (i + (self.size / 2) - lines / 2) * self.size + (j - cols / 2 + self.size / 2);
-                self.grid()[idx] = *elem;
-            }
-        }
-    }
-
     #[inline]
-    pub fn grid(&mut self) -> &mut Vec<u8> {
+    fn grid_mut(&mut self) -> &mut Vec<u8> {
         if self.flop {
             &mut self.grid1
         } else {
@@ -61,7 +27,7 @@ impl Automaton {
     }
 
     #[inline]
-    pub fn prev_grid(&mut self) -> &mut Vec<u8> {
+    fn prev_grid(&mut self) -> &mut Vec<u8> {
         if self.flop {
             &mut self.grid2
         } else {
@@ -70,12 +36,12 @@ impl Automaton {
     }
 
     #[inline]
-    pub fn single_update(&mut self, is: isize, js: isize) {
+    fn single_update(&mut self, is: isize, js: isize) {
         let size = self.size;
         let mut ind: usize = 0;
         let mut pw = 0;
         let states = self.states as usize;
-        let grid = self.grid();
+        let grid = self.grid_mut();
         for a in -HORIZON..=HORIZON {
             for b in -HORIZON..=HORIZON {
                 let idx =
@@ -90,12 +56,12 @@ impl Automaton {
     }
 
     #[inline]
-    pub fn single_update_bound_check(&mut self, is: isize, js: isize) {
+    fn single_update_bound_check(&mut self, is: isize, js: isize) {
         let size = self.size;
         let mut ind: usize = 0;
         let mut pw = 0;
         let states = self.states as usize;
-        let grid = self.grid();
+        let grid = self.grid_mut();
         for a in -HORIZON..=HORIZON {
             for b in -HORIZON..=HORIZON {
                 let idx = (((is + isize::from(a) + size as isize) % size as isize)
@@ -110,9 +76,76 @@ impl Automaton {
         }
         self.prev_grid()[is as usize * size + js as usize] = self.rule.get(ind);
     }
+}
+
+impl AutomatonImpl for Automaton {
+    fn new(states: u8, size: usize, rule: Rule) -> Automaton {
+        let grid = vec![0; size * size];
+        Automaton {
+            states,
+            size,
+            flop: true,
+            rule,
+            grid1: grid.to_vec(),
+            grid2: grid.to_vec(),
+        }
+    }
 
     #[inline]
-    pub fn update(&mut self) {
+    fn grid(&self) -> Vec<u8> {
+        if self.flop {
+            self.grid1.clone()
+        } else {
+            self.grid2.clone()
+        }
+    }
+
+    fn skipped_iter(
+        &mut self,
+        steps: u32,
+        skip: u32,
+        scale: u16,
+    ) -> Box<dyn Iterator<Item = Vec<u8>> + '_> {
+        let size = self.size;
+        Box::new(
+            AutomatonIterator {
+                autom: self,
+                skip,
+                steps: Some(steps),
+                ct: 0,
+            }
+            .map(move |grid| duplicate_array(&grid, size, scale)),
+        )
+    }
+
+    fn get_size(&self) -> usize {
+        self.size
+    }
+
+    fn get_states(&self) -> u8 {
+        self.states
+    }
+    fn init_from_pattern(&mut self, pattern_fname: &str) {
+        let pattern_spec = parse_pattern(pattern_fname).unwrap();
+        assert!(pattern_spec.states <= self.states);
+        assert!(pattern_spec.background < self.states);
+        for i in self.grid_mut().iter_mut() {
+            *i = pattern_spec.background;
+        }
+        let lines = pattern_spec.pattern.len();
+        let cols = pattern_spec.pattern.iter().map(|x| x.len()).max().unwrap();
+        for i in 0..lines {
+            let lin = &pattern_spec.pattern[i];
+            for (j, elem) in lin.iter().enumerate() {
+                let idx =
+                    (i + (self.size / 2) - lines / 2) * self.size + (j - cols / 2 + self.size / 2);
+                self.grid_mut()[idx] = *elem;
+            }
+        }
+    }
+
+    #[inline]
+    fn update(&mut self) {
         let bounds_low = HORIZON as usize;
         let bounds_high = (self.size as isize - isize::from(HORIZON)) as usize;
         //Main update
@@ -143,33 +176,13 @@ impl Automaton {
 
         self.flop = !self.flop;
     }
-}
 
-impl AutomatonImpl for Automaton {
-    fn skipped_iter(
-        &mut self,
-        steps: u32,
-        skip: u32,
-        scale: u16,
-    ) -> Box<dyn Iterator<Item = Vec<u8>> + '_> {
-        let size = self.size;
-        Box::new(
-            AutomatonIterator {
-                autom: self,
-                skip,
-                steps: Some(steps),
-                ct: 0,
-            }
-            .map(move |grid| duplicate_array(grid, size, scale)),
-        )
-    }
-
-    fn get_size(&self) -> usize {
-        self.size
-    }
-
-    fn get_states(&self) -> u8 {
-        self.states
+    fn random_init(&mut self) {
+        let states = self.states;
+        let mut rng = rand::thread_rng();
+        for i in self.grid_mut().iter_mut() {
+            *i = rng.gen_range(0..states);
+        }
     }
 }
 
@@ -208,23 +221,11 @@ impl Iterator for AutomatonIterator<'_> {
     }
 }
 
-#[inline]
-fn duplicate_array(s: Vec<u8>, size: usize, scale: u16) -> Vec<u8> {
-    let scaled_size = size * scale as usize;
-    let mut out = Vec::with_capacity(scaled_size * scaled_size);
-    for i in 0..scaled_size {
-        for j in 0..scaled_size {
-            let item = s[(i / scale as usize) * size + (j / scale as usize)];
-            out.push(item);
-        }
-    }
-    out
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::automaton::Automaton;
+    use crate::automaton::AutomatonImpl;
     use crate::rule::Rule;
-    use crate::Automaton;
     use test::Bencher;
 
     fn get_random_auto(size: usize, states: u8) -> Automaton {

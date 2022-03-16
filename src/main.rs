@@ -1,19 +1,15 @@
-#![feature(test)]
 #![cfg_attr(test, deny(warnings))]
 #![deny(missing_docs)]
 //! The main crate for CellularAutomata-rs.
 
-// Third-party packages
-extern crate test;
-
-mod automaton;
-mod output;
-mod rule;
 
 use clap::Clap;
 
-use crate::automaton::{Automaton, TiledAutomaton, TILE_SIZE};
-use crate::rule::Rule;
+use rust_ca::automaton::{Automaton, TiledAutomaton, TILE_SIZE};
+use rust_ca::rule::Rule;
+use rust_ca::output;
+use rust_ca::rule;
+use rust_ca::automaton::AutomatonImpl;
 
 /// A CLI CA simulator. With no options, this runs a randomly sampled CA rule
 /// with 2 states for 50 steps and outputs it as a gif file `test.gif`.
@@ -48,6 +44,8 @@ struct Opts {
     pattern: Option<String>,
     #[clap(short, long, possible_values = &["uniform", "dirichlet"], default_value = "dirichlet")]
     rule_sampling: rule::SamplingMode,
+    #[clap(long, default_value = "0")]
+    rotate: u8,
 }
 
 struct SimulationOpts {
@@ -60,6 +58,7 @@ struct SimulationOpts {
     delay: u16,
     rule: Rule,
     pattern: Option<String>,
+    rotate: u8,
 }
 
 fn parse_opts(opts: Opts) -> SimulationOpts {
@@ -89,6 +88,7 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
         rule,
         pattern: opts.pattern,
         delay: opts.delay,
+        rotate: opts.rotate,
     }
 }
 
@@ -107,6 +107,7 @@ fn main() {
             opts.steps,
             opts.skip,
             opts.delay,
+            opts.rotate,
         );
     } else {
         let mut a = Automaton::new(opts.states, opts.size.into(), opts.rule);
@@ -121,31 +122,7 @@ fn main() {
             opts.steps,
             opts.skip,
             opts.delay,
+            opts.rotate,
         );
     };
-}
-
-#[cfg(test)]
-mod tests {
-    use super::test::Bencher;
-    use crate::automaton::{Automaton, TiledAutomaton};
-    use crate::output;
-    use crate::rule::Rule;
-
-    #[bench]
-    fn write_autom(b: &mut Bencher) {
-        let r = Rule::random(1, 3);
-        let size: u16 = 512;
-        let mut a = Automaton::new(3, size.into(), r);
-        a.random_init();
-        b.iter(|| output::write_to_gif_file(Some("test.gif"), &mut a, 1, 10, 1))
-    }
-    #[bench]
-    fn write_autom_tiled(b: &mut Bencher) {
-        let r = Rule::random(1, 3);
-        let size: u16 = 512;
-        let mut a = TiledAutomaton::new(3, size.into(), r);
-        a.random_init();
-        b.iter(|| output::write_to_gif_file(Some("test.gif"), &mut a, 1, 10, 1))
-    }
 }
