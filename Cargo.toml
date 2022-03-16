@@ -8,7 +8,7 @@ description = "A tool for simulating and visualizing cellular automata in Rust"
 documentation = "https://docs.rs/rust_ca"
 repository = "https://github.com/hugcis/rust_ca"
 readme = "README.md"
-keywords = ["cellular automata", "cellular automaton", "simulation", "automaton", "cellular", "game of life"]
+keywords = ["cellular-automata", "cellular-automaton", "simulation", "automaton", "game-of-life"]
 categories = ["graphics", "command-line-utilities"]
 
 
