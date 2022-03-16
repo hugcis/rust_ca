@@ -2,8 +2,7 @@
 #![deny(missing_docs)]
 //! The main crate for CellularAutomata-rs.
 
-
-use clap::Clap;
+use clap::Parser;
 
 use rust_ca::automaton::{Automaton, TiledAutomaton, TILE_SIZE};
 use rust_ca::rule::Rule;
@@ -13,7 +12,7 @@ use rust_ca::automaton::AutomatonImpl;
 
 /// A CLI CA simulator. With no options, this runs a randomly sampled CA rule
 /// with 2 states for 50 steps and outputs it as a gif file `test.gif`.
-#[derive(Clap)]
+#[derive(Parser, Debug)]
 #[clap(
     name = "Rust CA",
     version = "0.1.0",

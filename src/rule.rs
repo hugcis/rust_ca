@@ -16,6 +16,7 @@ use rand_distr::Distribution;
 
 const ALPHA: f64 = 0.2;
 
+#[derive(Debug)]
 /// The sampling mode for the random rule generation.
 pub enum SamplingMode {
     /// Uniformly sample transitions in the rule table.
