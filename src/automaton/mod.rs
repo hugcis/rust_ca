@@ -32,9 +32,9 @@ pub trait AutomatonImpl {
     /// Returns an boxed iterator of CA steps, skipping every `skip` step.
     fn skipped_iter(&mut self, steps: u32, skip: u32, scale: u16) -> StepIteratorBox;
     /// Returns the size of the automaton.
-    fn get_size(&self) -> usize;
+    fn size(&self) -> usize;
     /// Returns the number of states of the automaton.
-    fn get_states(&self) -> u8;
+    fn states(&self) -> u8;
     /// Returns a boxed iterator of CA steps.
     fn iter(&mut self, steps: u32, scale: u16) -> StepIteratorBox {
         self.skipped_iter(steps, 0, scale)

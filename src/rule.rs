@@ -95,7 +95,7 @@ impl Rule {
             .collect();
         let big_bound: u64 = (states as u64).pow((2 * horizon + 1).pow(2).try_into().unwrap());
         let table: Vec<u8> = (0..big_bound)
-            .map(|_| get_rand_state(&lambdas, states))
+            .map(|_| rand_state(&lambdas, states))
             .collect();
         Rule {
             horizon,
@@ -149,7 +149,7 @@ impl Rule {
     }
 }
 
-fn get_rand_state(lambdas: &[f64], states: u8) -> u8 {
+fn rand_state(lambdas: &[f64], states: u8) -> u8 {
     assert_eq!(lambdas.len(), states.into());
     let mut rng = rand::thread_rng();
     let val: f64 = rng.gen_range(0.0..1.0);

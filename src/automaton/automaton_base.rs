@@ -118,11 +118,11 @@ impl AutomatonImpl for Automaton {
         )
     }
 
-    fn get_size(&self) -> usize {
+    fn size(&self) -> usize {
         self.size
     }
 
-    fn get_states(&self) -> u8 {
+    fn states(&self) -> u8 {
         self.states
     }
     fn init_from_pattern(&mut self, pattern_fname: &str) {

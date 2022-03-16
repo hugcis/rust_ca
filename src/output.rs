@@ -16,9 +16,9 @@ pub fn write_to_gif_file<T>(
 ) where
     T: AutomatonImpl,
 {
-    let size = autom.get_size() as u16;
+    let size = autom.size() as u16;
     let scaled_size = size * scale;
-    let states = autom.get_states();
+    let states = autom.states();
 
     let mut im_file = File::create(fname.unwrap_or("test.gif")).unwrap();
     let mut g = Encoder::new(&mut im_file, scaled_size, scaled_size, &[]).unwrap();
