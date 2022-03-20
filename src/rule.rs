@@ -1,10 +1,12 @@
 //! Functions and struct to create and manipulate CA rules.
 extern crate rand_distr;
+mod utils;
 
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
+use std::ops::{Index, IndexMut};
 use std::str::FromStr;
 
 use flate2::read::ZlibDecoder;
@@ -59,11 +61,6 @@ impl Rule {
         } else {
             panic!("Incorrect rule given")
         }
-    }
-
-    /// Returns the rule's value at table index `index`.
-    pub fn get(&self, index: usize) -> u8 {
-        self.table[index]
     }
 
     /// Create a random rule with uniformly sampled transitions.
@@ -148,6 +145,24 @@ impl Rule {
         self.table.len() as u64
             == (self.states as u64).pow((2 * self.horizon + 1).pow(2).try_into().unwrap())
     }
+
+    /// Returns the game of life rule.
+    pub fn gol() -> Self {
+        Rule::new(1, 2, utils::GOL.to_vec())
+    }
+}
+
+impl Index<usize> for Rule {
+    type Output = u8;
+    fn index(&self, idx: usize) -> &Self::Output {
+        &self.table[idx]
+    }
+}
+
+impl IndexMut<usize> for Rule {
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+        &mut self.table[idx]
+    }
 }
 
 fn rand_state(lambdas: &[f64], states: u8) -> u8 {
@@ -160,4 +175,22 @@ fn rand_state(lambdas: &[f64], states: u8) -> u8 {
         .rev()
         .find_map(|(idx, l)| if val >= *l { Some(idx as u8 + 1) } else { None })
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Rule;
+
+#[test]
+    fn should_check_correct_rule_size() {
+        let mut rule = Rule { states: 2, horizon: 1, table: vec![1;512] };
+        assert!(rule.check());
+        rule.table.push(0);
+        assert!(!rule.check());
+
+        rule = Rule { states: 3, horizon: 1, table: vec![1;19683] };
+        assert!(rule.check());
+        rule.table.push(0);
+        assert!(!rule.check());
+    }
 }

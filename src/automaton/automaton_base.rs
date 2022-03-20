@@ -1,4 +1,5 @@
 #![deny(missing_docs)]
+use std::ops::Index;
 use super::{AutomatonImpl, HORIZON};
 use crate::automaton::duplicate_array;
 use crate::{automaton::parse_pattern, rule::Rule};
@@ -52,7 +53,7 @@ impl Automaton {
                 pw += 1;
             }
         }
-        self.prev_grid()[is as usize * size + js as usize] = self.rule.get(ind);
+        self.prev_grid()[is as usize * size + js as usize] = self.rule[ind];
     }
 
     #[inline]
@@ -74,9 +75,21 @@ impl Automaton {
                 pw += 1;
             }
         }
-        self.prev_grid()[is as usize * size + js as usize] = self.rule.get(ind);
+        self.prev_grid()[is as usize * size + js as usize] = self.rule[ind];
     }
 }
+
+impl Index<usize> for Automaton {
+    type Output = u8;
+    fn index(&self, idx: usize) -> &Self::Output {
+        if self.flop {
+            &self.grid1[idx]
+        } else {
+            &self.grid2[idx]
+        }
+    }
+}
+
 
 impl AutomatonImpl for Automaton {
     fn new(states: u8, size: usize, rule: Rule) -> Automaton {

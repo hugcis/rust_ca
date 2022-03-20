@@ -59,7 +59,7 @@ impl TiledAutomaton {
                         pw += 1;
                     }
                 }
-                self.prev_grid()[tx * n_tiles + ty][i * TILE_SIZE + j] = self.rule.get(ind);
+                self.prev_grid()[tx * n_tiles + ty][i * TILE_SIZE + j] = self.rule[ind];
             }
         }
     }
@@ -95,9 +95,9 @@ impl TiledAutomaton {
                     pw += 1;
                 }
             }
-            self.prev_grid()[tx * n_tiles + ty][i * TILE_SIZE] = self.rule.get(ind);
+            self.prev_grid()[tx * n_tiles + ty][i * TILE_SIZE] = self.rule[ind];
             self.prev_grid()[tx * n_tiles + prev_y][i * TILE_SIZE + (TILE_SIZE - 1)] =
-                self.rule.get(ind);
+                self.rule[ind];
         }
         for j in 1..TILE_SIZE - 1 {
             let js = j as isize;
@@ -118,9 +118,9 @@ impl TiledAutomaton {
                     pw += 1;
                 }
             }
-            self.prev_grid()[tx * n_tiles + ty][j] = self.rule.get(ind);
+            self.prev_grid()[tx * n_tiles + ty][j] = self.rule[ind];
             self.prev_grid()[prev_x * n_tiles + ty][(TILE_SIZE - 1) * TILE_SIZE + j] =
-                self.rule.get(ind);
+                self.rule[ind];
         }
 
         let mut ind: usize = 0;
@@ -150,11 +150,11 @@ impl TiledAutomaton {
                 pw += 1;
             }
         }
-        self.prev_grid()[tx * n_tiles + ty][0] = self.rule.get(ind);
-        self.prev_grid()[prev_x * n_tiles + ty][(TILE_SIZE - 1) * TILE_SIZE] = self.rule.get(ind);
-        self.prev_grid()[tx * n_tiles + prev_y][TILE_SIZE - 1] = self.rule.get(ind);
+        self.prev_grid()[tx * n_tiles + ty][0] = self.rule[ind];
+        self.prev_grid()[prev_x * n_tiles + ty][(TILE_SIZE - 1) * TILE_SIZE] = self.rule[ind];
+        self.prev_grid()[tx * n_tiles + prev_y][TILE_SIZE - 1] = self.rule[ind];
         self.prev_grid()[prev_x * n_tiles + prev_y][(TILE_SIZE - 1) * TILE_SIZE + TILE_SIZE - 1] =
-            self.rule.get(ind);
+            self.rule[ind];
     }
 }
 

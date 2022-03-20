@@ -2,13 +2,15 @@
 #![deny(missing_docs)]
 //! The main crate for CellularAutomata-rs.
 
+use core::panic;
+
 use clap::Parser;
 
+use rust_ca::automaton::AutomatonImpl;
 use rust_ca::automaton::{Automaton, TiledAutomaton, TILE_SIZE};
-use rust_ca::rule::Rule;
 use rust_ca::output;
 use rust_ca::rule;
-use rust_ca::automaton::AutomatonImpl;
+use rust_ca::rule::Rule;
 
 /// A CLI CA simulator. With no options, this runs a randomly sampled CA rule
 /// with 2 states for 50 steps and outputs it as a gif file `test.gif`.
@@ -36,9 +38,12 @@ struct Opts {
     #[clap(long, default_value = "10")]
     delay: u16,
     /// File to read a rule from. The file must contain a valid rule for the
-    /// corresponding number of states
+    /// corresponding number of states.
     #[clap(short, long)]
     file: Option<String>,
+    /// Specify one of the implemented CA rule.
+    #[clap(short, long, possible_values = &["GOL"])]
+    rule: Option<String>,
     #[clap(short, long)]
     pattern: Option<String>,
     #[clap(short, long, possible_values = &["uniform", "dirichlet"], default_value = "dirichlet")]
@@ -68,14 +73,21 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
     } else {
         4
     };
-    let rule = match opts.file {
-        Some(fname) => Rule::from_file(&fname).unwrap(),
-        None => match opts.rule_sampling {
-            rule::SamplingMode::Dirichlet => {
-                Rule::random_dirichlet(opts.horizon, opts.states, None)
-            }
-            rule::SamplingMode::Uniform => Rule::random(opts.horizon, opts.states),
-        },
+    let rule = if let Some(rule_name) = opts.rule {
+        match rule_name.as_str() {
+            "GOL" => Rule::gol(),
+            _ => panic!("Unknown rule name"),
+        }
+    } else {
+        match opts.file {
+            Some(fname) => Rule::from_file(&fname).unwrap(),
+            None => match opts.rule_sampling {
+                rule::SamplingMode::Dirichlet => {
+                    Rule::random_dirichlet(opts.horizon, opts.states, None)
+                }
+                rule::SamplingMode::Uniform => Rule::random(opts.horizon, opts.states),
+            },
+        }
     };
     SimulationOpts {
         size: opts.size,
