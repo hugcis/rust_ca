@@ -115,15 +115,6 @@ impl AutomatonImpl for Automaton {
         }
     }
 
-    #[inline]
-    fn grid(&self) -> &[u8] {
-        if self.flop {
-            &self.grid1
-        } else {
-            &self.grid2
-        }
-    }
-
     fn skipped_iter(
         &mut self,
         steps: u32,
@@ -148,6 +139,10 @@ impl AutomatonImpl for Automaton {
 
     fn states(&self) -> u8 {
         self.states
+    }
+
+    fn iter(&mut self, steps: u32, scale: u16) -> super::StepIteratorBox {
+        self.skipped_iter(steps, 0, scale)
     }
     fn init_from_pattern(&mut self, pattern_fname: &str) {
         let pattern_spec = parse_pattern(pattern_fname).unwrap();
@@ -206,6 +201,15 @@ impl AutomatonImpl for Automaton {
         let mut rng = rand::thread_rng();
         for i in self.grid_mut().iter_mut() {
             *i = rng.gen_range(0..states);
+        }
+    }
+
+    #[inline]
+    fn grid(&self) -> Vec<u8> {
+        if self.flop {
+            self.grid1.clone()
+        } else {
+            self.grid2.clone()
         }
     }
 }
