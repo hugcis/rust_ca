@@ -46,7 +46,7 @@ pub trait AutomatonImpl {
     /// Randomly set all the cells of the cellular automaton grid
     fn random_init(&mut self);
     /// Get the current grid.
-    fn grid(&self) -> Vec<u8>;
+    fn grid(&self) -> &[u8];
 }
 
 fn parse_pattern(pattern_fname: &str) -> Result<PatternSpec, io::Error> {

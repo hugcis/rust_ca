@@ -1,9 +1,9 @@
 #![deny(missing_docs)]
-use std::ops::Index;
 use super::{AutomatonImpl, HORIZON};
 use crate::automaton::duplicate_array;
 use crate::{automaton::parse_pattern, rule::Rule};
 use rand::Rng;
+use std::ops::Index;
 
 /// The 2D Automaton object.
 pub struct Automaton {
@@ -19,20 +19,21 @@ pub struct Automaton {
 
 impl Automaton {
     #[inline]
-    fn grid_mut(&mut self) -> &mut Vec<u8> {
-        if self.flop {
-            &mut self.grid1
-        } else {
-            &mut self.grid2
-        }
-    }
-
-    #[inline]
     fn prev_grid(&mut self) -> &mut Vec<u8> {
         if self.flop {
             &mut self.grid2
         } else {
             &mut self.grid1
+        }
+    }
+
+    #[inline]
+    /// Get a mutable reference to the current grid.
+    pub fn grid_mut(&mut self) -> &mut Vec<u8> {
+        if self.flop {
+            &mut self.grid1
+        } else {
+            &mut self.grid2
         }
     }
 
@@ -90,7 +91,6 @@ impl Index<usize> for Automaton {
     }
 }
 
-
 impl AutomatonImpl for Automaton {
     fn new(states: u8, size: usize, rule: Rule) -> Automaton {
         let grid = vec![0; size * size];
@@ -105,11 +105,11 @@ impl AutomatonImpl for Automaton {
     }
 
     #[inline]
-    fn grid(&self) -> Vec<u8> {
+    fn grid(&self) -> &[u8] {
         if self.flop {
-            self.grid1.clone()
+            &self.grid1
         } else {
-            self.grid2.clone()
+            &self.grid2
         }
     }
 

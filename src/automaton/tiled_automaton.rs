@@ -173,8 +173,8 @@ impl AutomatonImpl for TiledAutomaton {
     }
 
     #[inline]
-    fn grid(&self) -> Vec<u8> {
-        duplicate_array_tiled(
+    fn grid(&self) -> &[u8] {
+        &duplicate_array_tiled(
             if self.flop { &self.grid1 } else { &self.grid2 },
             self.size,
             1,
