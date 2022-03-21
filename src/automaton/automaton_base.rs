@@ -3,7 +3,7 @@ use super::{AutomatonImpl, HORIZON};
 use crate::automaton::duplicate_array;
 use crate::{automaton::parse_pattern, rule::Rule};
 use rand::Rng;
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 /// The 2D Automaton object.
 pub struct Automaton {
@@ -90,6 +90,17 @@ impl Index<usize> for Automaton {
         }
     }
 }
+
+impl IndexMut<usize> for Automaton {
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+        if self.flop {
+            &mut self.grid1[idx]
+        } else {
+            &mut self.grid2[idx]
+        }
+    }
+}
+
 
 impl AutomatonImpl for Automaton {
     fn new(states: u8, size: usize, rule: Rule) -> Automaton {
