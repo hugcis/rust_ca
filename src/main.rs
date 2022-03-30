@@ -1,6 +1,6 @@
 #![cfg_attr(test, deny(warnings))]
 #![deny(missing_docs)]
-//! The main crate for CellularAutomata-rs.
+//! The main crate for rust_ca.
 
 use core::panic;
 
@@ -50,6 +50,9 @@ struct Opts {
     rule_sampling: rule::SamplingMode,
     #[clap(long, default_value = "0")]
     rotate: u8,
+    /// Use a tiled CA (defaults to true when the size is a multiple of TILE_SIZE).
+    #[clap(long)]
+    use_tiled: bool,
 }
 
 struct SimulationOpts {
@@ -103,37 +106,36 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
     }
 }
 
+/// Generate a gif file from a automaton implementing AutomatonImpl. Will use
+/// the options defined in `opts`.
+fn generate_gif_from_init<T: AutomatonImpl>(a: &mut T, opts: &SimulationOpts) {
+    if let Some(fname) = &opts.pattern {
+        a.init_from_pattern(fname);
+    } else {
+        a.random_init();
+    }
+    output::write_to_gif_file(
+        Some("test.gif"),
+        a,
+        opts.scale,
+        opts.steps,
+        opts.skip,
+        opts.delay,
+        opts.rotate,
+    );
+}
+
 fn main() {
     let opts = parse_opts(Opts::parse());
     if opts.size as usize % (TILE_SIZE - 1) == 0 {
-        let mut a = TiledAutomaton::new(opts.states, opts.size.into(), opts.rule);
-        a.random_init();
-        if let Some(fname) = opts.pattern {
-            a.init_from_pattern(&fname);
-        }
-        output::write_to_gif_file(
-            Some("test.gif"),
-            &mut a,
-            opts.scale,
-            opts.steps,
-            opts.skip,
-            opts.delay,
-            opts.rotate,
+        generate_gif_from_init(
+            &mut TiledAutomaton::new(opts.states, opts.size.into(), opts.rule.clone()),
+            &opts,
         );
     } else {
-        let mut a = Automaton::new(opts.states, opts.size.into(), opts.rule);
-        a.random_init();
-        if let Some(fname) = opts.pattern {
-            a.init_from_pattern(&fname);
-        }
-        output::write_to_gif_file(
-            Some("test.gif"),
-            &mut a,
-            opts.scale,
-            opts.steps,
-            opts.skip,
-            opts.delay,
-            opts.rotate,
+        generate_gif_from_init(
+            &mut Automaton::new(opts.states, opts.size.into(), opts.rule.clone()),
+            &opts,
         );
     };
 }

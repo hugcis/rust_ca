@@ -40,6 +40,7 @@ impl FromStr for SamplingMode {
     }
 }
 
+#[derive(Debug, Clone)]
 /// The rule object. Represents a cellular automaton rule.
 pub struct Rule {
     horizon: i8,
@@ -147,6 +148,9 @@ impl Rule {
     }
 
     /// Returns the game of life rule.
+    /// ```
+    /// let rule = Rule::gol();
+    /// ```
     pub fn gol() -> Self {
         Rule::new(1, 2, utils::GOL.to_vec())
     }
