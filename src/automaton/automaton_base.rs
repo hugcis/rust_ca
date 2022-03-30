@@ -140,9 +140,6 @@ impl AutomatonImpl for Automaton {
         self.states
     }
 
-    fn iter(&mut self, steps: u32, scale: u16) -> super::StepIteratorBox {
-        self.skipped_iter(steps, 0, scale)
-    }
     fn init_from_pattern(&mut self, pattern_fname: &str) {
         let pattern_spec = parse_pattern(pattern_fname).unwrap();
         assert!(pattern_spec.states <= self.states);
