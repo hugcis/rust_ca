@@ -1,5 +1,5 @@
 # Rust Cellular Automata
-[![Rust](https://github.com/hugcis/rust_ca/actions/workflows/rust.yml/badge.svg)](https://github.com/hugcis/rust_ca/actions/workflows/rust.yml)
+[![Crates.io](https://img.shields.io/crates/v/rust_ca)](https://crates.io/crates/rust_ca)[![Rust](https://github.com/hugcis/rust_ca/actions/workflows/rust.yml/badge.svg)](https://github.com/hugcis/rust_ca/actions/workflows/rust.yml)
 
 This is a command line tool to simulate and search the space of simple cellular
 automata (with relatively small neighborhoods).
