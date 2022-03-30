@@ -29,15 +29,16 @@ pub trait AutomatonImpl {
     /// let automaton = Automaton::new(3, 128, Rule::random(1, 2));
     /// ```
     fn new(states: u8, size: usize, rule: crate::rule::Rule) -> Self;
-    /// Returns an boxed iterator of CA steps, skipping every `skip` step.
+    /// Returns an boxed iterator of CA steps, skipping every `skip` step and
+    /// scaling the grid by a factor `scale`.
     fn skipped_iter(&mut self, steps: u32, skip: u32, scale: u16) -> StepIteratorBox;
     /// Returns the size of the automaton.
     fn size(&self) -> usize;
     /// Returns the number of states of the automaton.
     fn states(&self) -> u8;
     /// Returns a boxed iterator of CA steps.
-    fn iter(&mut self, steps: u32, scale: u16) -> StepIteratorBox {
-        self.skipped_iter(steps, 0, scale)
+    fn iter(&mut self, steps: u32) -> StepIteratorBox {
+        self.skipped_iter(steps, 0, 1)
     }
     /// Initialize all the cells of the grid from a pattern file.
     fn init_from_pattern(&mut self, pattern_fname: &str);

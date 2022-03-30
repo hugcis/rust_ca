@@ -8,7 +8,8 @@ pub const TILE_SIZE: usize = 257;
 
 pub type TiledGrid = Vec<[u8; TILE_SIZE * TILE_SIZE]>;
 
-/// A tiled version of the cellular automaton for faster simulation on large grids.
+/// A tiled version of the cellular automaton for more cache-friendly simulation
+/// on large grids.
 pub struct TiledAutomaton {
     size: usize,
     n_tiles: usize,

@@ -27,7 +27,7 @@ pub enum SamplingMode {
     Dirichlet,
 }
 
-// Implement the trait
+// Implement the FromStr trait for CLI options parsing.
 impl FromStr for SamplingMode {
     type Err = &'static str;
 
