@@ -101,7 +101,6 @@ impl IndexMut<usize> for Automaton {
     }
 }
 
-
 impl AutomatonImpl for Automaton {
     fn new(states: u8, size: usize, rule: Rule) -> Automaton {
         let grid = vec![0; size * size];
@@ -311,6 +310,12 @@ mod tests {
     #[bench]
     fn bench_single_update_512(b: &mut Bencher) {
         let mut a = get_random_auto(512, 3);
+        b.iter(|| a.update());
+    }
+
+    #[bench]
+    fn bench_single_update_2048(b: &mut Bencher) {
+        let mut a = get_random_auto(2048, 3);
         b.iter(|| a.update());
     }
 }

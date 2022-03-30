@@ -3,8 +3,8 @@ use crate::rule::Rule;
 use rand::Rng;
 use crate::automaton::duplicate_array;
 
-/// The size of tiles in the tiled cellular automatonf.
-pub const TILE_SIZE: usize = 129;
+/// The size of tiles in the tiled cellular automaton.
+pub const TILE_SIZE: usize = 257;
 
 pub type TiledGrid = Vec<[u8; TILE_SIZE * TILE_SIZE]>;
 
