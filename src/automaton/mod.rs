@@ -84,13 +84,17 @@ fn parse_pattern(pattern_fname: &str) -> Result<PatternSpec, io::Error> {
 
 #[inline]
 fn duplicate_array(s: &[u8], size: usize, scale: u16) -> Vec<u8> {
-    let scaled_size = size * scale as usize;
-    let mut out = Vec::with_capacity(scaled_size * scaled_size);
-    for i in 0..scaled_size {
-        for j in 0..scaled_size {
-            let item = s[(i / scale as usize) * size + (j / scale as usize)];
-            out.push(item);
+    if scale > 1 {
+        let scaled_size = size * scale as usize;
+        let mut out = Vec::with_capacity(scaled_size * scaled_size);
+        for i in 0..scaled_size {
+            for j in 0..scaled_size {
+                let item = s[(i / scale as usize) * size + (j / scale as usize)];
+                out.push(item);
+            }
         }
+        out
+    } else {
+        Vec::from(s)
     }
-    out
 }

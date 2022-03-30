@@ -3,10 +3,11 @@
 use crate::automaton::AutomatonImpl;
 use gif::{Encoder, Frame};
 use std::fs::File;
+use std::path::Path;
 
 /// Write the CA state to a GIF file.
-pub fn write_to_gif_file<T>(
-    fname: Option<&str>,
+pub fn write_to_gif_file<P: AsRef<Path>, T>(
+    path: Option<P>,
     autom: &mut T,
     scale: u16,
     steps: u32,
@@ -20,7 +21,12 @@ pub fn write_to_gif_file<T>(
     let scaled_size = size * scale;
     let states = autom.states();
 
-    let mut im_file = File::create(fname.unwrap_or("test.gif")).unwrap();
+    let mut im_file = if let Some(path) = path {
+        File::create(path).unwrap()
+    } else {
+        File::create(Path::new("test.gif")).unwrap()
+    };
+
     let mut g = Encoder::new(&mut im_file, scaled_size, scaled_size, &[]).unwrap();
     g.set_repeat(gif::Repeat::Infinite).unwrap();
 

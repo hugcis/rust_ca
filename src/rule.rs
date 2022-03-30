@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 use std::ops::{Index, IndexMut};
+use std::path::Path;
 use std::str::FromStr;
 
 use flate2::read::ZlibDecoder;
@@ -64,6 +65,16 @@ impl Rule {
         }
     }
 
+    /// Returns a reference to the rule table
+    pub fn table(&self) -> &[u8] {
+        &self.table
+    }
+
+    /// Returns a mutable reference to the rule table
+    pub fn table_mut(&mut self) -> &mut Vec<u8> {
+        &mut self.table
+    }
+
     /// Create a random rule with uniformly sampled transitions.
     pub fn random(horizon: i8, states: u8) -> Rule {
         let mut rng = rand::thread_rng();
@@ -104,8 +115,13 @@ impl Rule {
     }
 
     /// Read a rule from specified filename.
-    pub fn from_file(fname: &str) -> Result<Rule, std::io::Error> {
-        let f = File::open(fname)?;
+    /// ```ignore
+    /// use rust_ca::rule::Rule;
+    ///
+    /// let rule_from = Rule::from_file("test_path.rule")?;
+    /// ```
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Rule, std::io::Error> {
+        let f = File::open(path)?;
         let mut decoder = ZlibDecoder::new(f);
         let mut table = Vec::new();
         decoder.read_to_end(&mut table)?;
@@ -128,9 +144,16 @@ impl Rule {
         Ok(Rule::new(horizon, states, table))
     }
 
-    /// Write a rule to a specified filename.
-    pub fn to_file(&self, fname: &str) -> Result<(), std::io::Error> {
-        let f = File::open(fname)?;
+    /// Write a compressed representation of the rule to a specified filename.
+    /// ```
+    /// use rust_ca::rule::Rule;
+    ///
+    /// let rule = Rule::random(1, 2);
+    /// rule.to_file("test_path.rule")?;
+    /// # Ok::<(), std::io::Error>(())
+    /// ```
+    pub fn to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), std::io::Error> {
+        let f = File::create(path)?;
         let mut encoder = ZlibEncoder::new(f, Compression::default());
         let zero = '0';
         let mut out_vec = Vec::new();
@@ -142,6 +165,15 @@ impl Rule {
     }
 
     /// Perform some checks on the rule to ensure its correctness.
+    /// ```
+    /// use rust_ca::rule::Rule;
+    ///
+    /// let mut rule = Rule::random(1, 2);
+    /// assert!(rule.check());
+    ///
+    /// rule.table_mut().push(0);
+    /// assert!(!rule.check());
+    /// ```
     pub fn check(&self) -> bool {
         self.table.len() as u64
             == (self.states as u64).pow((2 * self.horizon + 1).pow(2).try_into().unwrap())
@@ -149,7 +181,22 @@ impl Rule {
 
     /// Returns the game of life rule.
     /// ```
-    /// let rule = Rule::gol();
+    /// use rust_ca::rule::Rule;
+    ///
+    /// let gol_rule = Rule::gol();
+    /// // Next central cell state for position:
+    /// // 1 1 1
+    /// // 0 1 0
+    /// // 0 0 0
+    /// // A live cell with 3 live neighbors lives on.
+    /// assert_eq!(gol_rule[1 * 2_usize.pow(0) + 1 * 2_usize.pow(1) + 1 * 2_usize.pow(2) +
+    ///                     1 * 2_usize.pow(4)], 1);
+    /// // 1 1 1
+    /// // 0 1 1
+    /// // 0 0 0
+    /// // A live cell with 4 live neighbors dies.
+    /// assert_eq!(gol_rule[1 * 2_usize.pow(0) + 1 * 2_usize.pow(1) + 1 * 2_usize.pow(2) +
+    ///                     1 * 2_usize.pow(4) + 1 * 2_usize.pow(5)], 0);
     /// ```
     pub fn gol() -> Self {
         Rule::new(1, 2, utils::GOL.to_vec())
@@ -185,14 +232,22 @@ fn rand_state(lambdas: &[f64], states: u8) -> u8 {
 mod tests {
     use super::Rule;
 
-#[test]
+    #[test]
     fn should_check_correct_rule_size() {
-        let mut rule = Rule { states: 2, horizon: 1, table: vec![1;512] };
+        let mut rule = Rule {
+            states: 2,
+            horizon: 1,
+            table: vec![1; 512],
+        };
         assert!(rule.check());
         rule.table.push(0);
         assert!(!rule.check());
 
-        rule = Rule { states: 3, horizon: 1, table: vec![1;19683] };
+        rule = Rule {
+            states: 3,
+            horizon: 1,
+            table: vec![1; 19683],
+        };
         assert!(rule.check());
         rule.table.push(0);
         assert!(!rule.check());
