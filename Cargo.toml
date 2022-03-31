@@ -1,6 +1,6 @@
 [package]
 name = "rust_ca"
-version = "0.2.1"
+version = "0.2.2"
 license = "MIT"
 authors = ["hugcis <hmj.cisneros@gmail.com>"]
 edition = "2018"

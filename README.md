@@ -53,7 +53,7 @@ done;
 ## CLI
 The CLI usage is: 
 ```
-Rust CA 0.2.1
+Rust CA 0.2.2
 Hugo Cisneros <hmj.cisneros@gmail.com>
 A CLI CA simulator. With no options, this runs a randomly sampled CA rule with 2 states for 50 steps
 and outputs it as a gif file `test.gif`
@@ -66,8 +66,8 @@ OPTIONS:
             [default: 10]
 
     -f, --file <FILE>
-            File to read a rule from. The file must contain a valid rule for the corresponding
-            number of states
+            File to read a rule from or write to. The file must contain a valid rule for the
+            corresponding number of states
 
     -h, --help
             Print help information
@@ -110,4 +110,8 @@ OPTIONS:
 
     -V, --version
             Print version information
+
+    -w, --write-rule <WRITE_RULE>
+            File to read a rule from or write to. The file must contain a valid rule for the
+            corresponding number of states
 ```

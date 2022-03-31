@@ -18,7 +18,7 @@ use rust_ca::rule::{self, SamplingMode};
 #[derive(Parser, Debug)]
 #[clap(
     name = "Rust CA",
-    version = "0.2.1",
+    version = "0.2.2",
     author = "Hugo Cisneros <hmj.cisneros@gmail.com>"
 )]
 struct Opts {
