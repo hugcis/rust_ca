@@ -1,6 +1,6 @@
 [package]
 name = "rust_ca"
-version = "0.2.0"
+version = "0.2.1"
 license = "MIT"
 authors = ["hugcis <hmj.cisneros@gmail.com>"]
 edition = "2018"
@@ -10,6 +10,7 @@ repository = "https://github.com/hugcis/rust_ca"
 readme = "README.md"
 keywords = ["cellular-automata", "cellular-automaton", "simulation", "automaton", "game-of-life"]
 categories = ["graphics", "command-line-utilities"]
+exclude = ["/assets"]
 
 
 [dependencies]
