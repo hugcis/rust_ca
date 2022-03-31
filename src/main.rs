@@ -3,14 +3,15 @@
 //! The main crate for rust_ca.
 
 use core::panic;
+use std::path::Path;
 
 use clap::Parser;
 
 use rust_ca::automaton::AutomatonImpl;
 use rust_ca::automaton::{Automaton, TiledAutomaton, TILE_SIZE};
 use rust_ca::output;
-use rust_ca::rule;
 use rust_ca::rule::Rule;
+use rust_ca::rule::{self, SamplingMode};
 
 /// A CLI CA simulator. With no options, this runs a randomly sampled CA rule
 /// with 2 states for 50 steps and outputs it as a gif file `test.gif`.
@@ -41,6 +42,10 @@ struct Opts {
     /// for the corresponding number of states.
     #[clap(short, long)]
     file: Option<String>,
+    /// File to read a rule from or write to. The file must contain a valid rule
+    /// for the corresponding number of states.
+    #[clap(short, long)]
+    write_rule: Option<String>,
     /// Specify one of the implemented CA rule.
     #[clap(short, long, possible_values = &["GOL"])]
     rule: Option<String>,
@@ -72,10 +77,27 @@ struct SimulationOpts {
     rule: Rule,
     pattern: Option<String>,
     rotate: u8,
-    output: Option<String>
+    output: Option<String>,
 }
 
-fn parse_opts(opts: Opts) -> SimulationOpts {
+fn make_new_rule<P: AsRef<Path>>(
+    sampling_mode: SamplingMode,
+    horizon: i8,
+    states: u8,
+    path: Option<P>,
+) -> Result<Rule, std::io::Error> {
+    let rule = match sampling_mode {
+        rule::SamplingMode::Dirichlet => Rule::random_dirichlet(horizon, states, None),
+        rule::SamplingMode::Uniform => Rule::random(horizon, states),
+    };
+
+    if let Some(path) = path {
+        rule.to_file(path)?;
+    }
+    Ok(rule)
+}
+
+fn parse_opts(opts: Opts) -> Result<SimulationOpts, std::io::Error> {
     let scale = if opts.size > 512 {
         2
     } else if opts.size > 256 {
@@ -89,18 +111,20 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
             _ => panic!("Unknown rule name"),
         }
     } else {
-        match opts.file {
-            Some(fname) => Rule::from_file(&fname).unwrap(),
-            None => match opts.rule_sampling {
-                rule::SamplingMode::Dirichlet => {
-                    Rule::random_dirichlet(opts.horizon, opts.states, None)
-                }
-                rule::SamplingMode::Uniform => Rule::random(opts.horizon, opts.states),
-            },
+        match (opts.file, opts.write_rule) {
+            (Some(file), _) => Rule::from_file(&file).unwrap(),
+            (None, Some(write)) => {
+                make_new_rule(opts.rule_sampling, opts.horizon, opts.states, Some(write))?
+            }
+            (None, None) => {
+                make_new_rule::<String>(opts.rule_sampling, opts.horizon, opts.states, None)?
+            }
         }
     };
-    if opts.symmetric {rule.symmetrize();}
-    SimulationOpts {
+    if opts.symmetric {
+        rule.symmetrize();
+    }
+    Ok(SimulationOpts {
         size: opts.size,
         scale,
         states: opts.states,
@@ -111,8 +135,8 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
         pattern: opts.pattern,
         delay: opts.delay,
         rotate: opts.rotate,
-        output: opts.output
-    }
+        output: opts.output,
+    })
 }
 
 /// Generate a gif file from a automaton implementing AutomatonImpl. Will use
@@ -131,11 +155,12 @@ fn generate_gif_from_init<T: AutomatonImpl>(a: &mut T, opts: &SimulationOpts) {
         opts.skip,
         opts.delay,
         opts.rotate,
-    ).expect("Error writing output");
+    )
+    .expect("Error writing output");
 }
 
 fn main() {
-    let opts = parse_opts(Opts::parse());
+    let opts = parse_opts(Opts::parse()).unwrap();
     if opts.size as usize % (TILE_SIZE - 1) == 0 {
         generate_gif_from_init(
             &mut TiledAutomaton::new(opts.states, opts.size.into(), opts.rule.clone()),

@@ -82,6 +82,8 @@ impl Rule {
         &mut self.table
     }
 
+    /// Returns the expected rule size for a given (horizon, states) pair. Used
+    /// for checking the rule is well formed.
     fn rule_size(horizon: i8, states: u8) -> u64 {
         (states as u64).pow((2 * horizon + 1).pow(2).try_into().unwrap())
     }
@@ -100,6 +102,9 @@ impl Rule {
 
     /// Create a random rule with transitions sampled according to a Dirichlet
     /// distribution with parameter `alpha`.
+    ///
+    /// For more information see this [note about CA rule
+    /// sampling](https://hugocisneros.com/notes/cellular_automata/#dirichlet-based-sampling).
     pub fn random_dirichlet(horizon: i8, states: u8, alpha: Option<f64>) -> Rule {
         let alpha = match alpha {
             Some(v) => v,
@@ -231,7 +236,16 @@ impl Rule {
         Rule::new(1, 2, utils::GOL.to_vec())
     }
 
-    /// Symmetrize a rule
+    /// This function symmetrizes a rule, making all positions which are the
+    /// same up to a symmetry transformation have the same next state.
+    /// ```
+    /// use rust_ca::rule::Rule;
+    ///
+    /// let mut rule = Rule::random(1, 2);
+    ///
+    /// rule.symmetrize();
+    /// assert_eq!(rule[236], rule[299]);
+    /// ```
     pub fn symmetrize(&mut self) {
         let states = self.states;
         let side = (self.horizon * 2 + 1) as usize;
@@ -270,6 +284,8 @@ impl Rule {
             book_keep[position_reverse_r] = true;
             book_keep[position_tr] = true;
             book_keep[position_atr] = true;
+
+
 
             table[position_180] = table[position];
             table[position_90] = table[position];
