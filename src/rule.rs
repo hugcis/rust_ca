@@ -5,19 +5,23 @@ mod utils;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::io::Write;
 use std::ops::{Index, IndexMut};
 use std::path::Path;
 use std::str::FromStr;
 
+use flate2::read::GzDecoder;
 use flate2::read::ZlibDecoder;
-use flate2::write::ZlibEncoder;
+use flate2::write::GzEncoder;
 use flate2::Compression;
 use rand::Rng;
 use rand_distr::Dirichlet;
 use rand_distr::Distribution;
 
 const ALPHA: f64 = 0.2;
+const GZIP_H: [u8; 9] = [0x1f, 0x8b, 0x08, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
 
 #[derive(Debug)]
 /// The sampling mode for the random rule generation.
@@ -115,20 +119,35 @@ impl Rule {
     }
 
     /// Read a rule from specified filename.
-    /// ```ignore
+    /// ```
     /// use rust_ca::rule::Rule;
     ///
-    /// let rule_from = Rule::from_file("test_path.rule")?;
+    /// # let rule = Rule::random(1, 2);
+    /// # rule.to_file("test_path.rule")?;
+    /// let rule_from_file = Rule::from_file("test_path.rule")?;
+    /// # Ok::<(), std::io::Error>(())
     /// ```
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Rule, std::io::Error> {
-        let f = File::open(path)?;
-        let mut decoder = ZlibDecoder::new(f);
+    pub fn from_file<P: AsRef<Path> + Copy>(path: P) -> Result<Rule, std::io::Error> {
+        let mut f = File::open(path)?;
+        let mut header_test = [0; 9];
+
+        f.read_exact(&mut header_test)?;
+        f.seek(SeekFrom::Start(0))?;
+
         let mut table = Vec::new();
-        decoder.read_to_end(&mut table)?;
+        if !header_test.iter().zip(GZIP_H.iter()).all(|(a, b)| a == b) {
+            let mut decoder = ZlibDecoder::new(f);
+            decoder.read_to_end(&mut table)?;
+        } else {
+            let mut decoder = GzDecoder::new(f);
+            decoder.read_to_end(&mut table)?;
+        };
         let zero = '0';
         for i in &mut table {
             *i -= zero as u8;
         }
+
+        // Infer the number of states and horizon from the table size
         let (states, horizon) = (2..30)
             .find_map(|i| {
                 let d = (table.len() as f64).ln() / (i as f64).ln();
@@ -154,7 +173,7 @@ impl Rule {
     /// ```
     pub fn to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), std::io::Error> {
         let f = File::create(path)?;
-        let mut encoder = ZlibEncoder::new(f, Compression::default());
+        let mut encoder = GzEncoder::new(f, Compression::default());
         let zero = '0';
         let mut out_vec = Vec::new();
         for i in &self.table {
