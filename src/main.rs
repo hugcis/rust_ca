@@ -17,7 +17,7 @@ use rust_ca::rule::Rule;
 #[derive(Parser, Debug)]
 #[clap(
     name = "Rust CA",
-    version = "0.1.0",
+    version = "0.2.1",
     author = "Hugo Cisneros <hmj.cisneros@gmail.com>"
 )]
 struct Opts {
