@@ -37,8 +37,8 @@ struct Opts {
     horizon: i8,
     #[clap(long, default_value = "10")]
     delay: u16,
-    /// File to read a rule from. The file must contain a valid rule for the
-    /// corresponding number of states.
+    /// File to read a rule from or write to. The file must contain a valid rule
+    /// for the corresponding number of states.
     #[clap(short, long)]
     file: Option<String>,
     /// Specify one of the implemented CA rule.
@@ -46,13 +46,19 @@ struct Opts {
     rule: Option<String>,
     #[clap(short, long)]
     pattern: Option<String>,
-    #[clap(short, long, possible_values = &["uniform", "dirichlet"], default_value = "dirichlet")]
+    #[clap(long, possible_values = &["uniform", "dirichlet"], default_value = "dirichlet")]
     rule_sampling: rule::SamplingMode,
     #[clap(long, default_value = "0")]
     rotate: u8,
     /// Use a tiled CA (defaults to true when the size is a multiple of TILE_SIZE).
     #[clap(long)]
     use_tiled: bool,
+    /// Make the rule symmetric (this will also apply to rules passed as files).
+    #[clap(long)]
+    symmetric: bool,
+    /// A file to write the GIF to. Defaults to standard output.
+    #[clap(short, long)]
+    output: Option<String>,
 }
 
 struct SimulationOpts {
@@ -66,6 +72,7 @@ struct SimulationOpts {
     rule: Rule,
     pattern: Option<String>,
     rotate: u8,
+    output: Option<String>
 }
 
 fn parse_opts(opts: Opts) -> SimulationOpts {
@@ -76,7 +83,7 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
     } else {
         4
     };
-    let rule = if let Some(rule_name) = opts.rule {
+    let mut rule = if let Some(rule_name) = opts.rule {
         match rule_name.as_str() {
             "GOL" => Rule::gol(),
             _ => panic!("Unknown rule name"),
@@ -92,6 +99,7 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
             },
         }
     };
+    if opts.symmetric {rule.symmetrize();}
     SimulationOpts {
         size: opts.size,
         scale,
@@ -103,6 +111,7 @@ fn parse_opts(opts: Opts) -> SimulationOpts {
         pattern: opts.pattern,
         delay: opts.delay,
         rotate: opts.rotate,
+        output: opts.output
     }
 }
 
@@ -115,14 +124,14 @@ fn generate_gif_from_init<T: AutomatonImpl>(a: &mut T, opts: &SimulationOpts) {
         a.random_init();
     }
     output::write_to_gif_file(
-        Some("test.gif"),
+        opts.output.as_ref(),
         a,
         opts.scale,
         opts.steps,
         opts.skip,
         opts.delay,
         opts.rotate,
-    );
+    ).expect("Error writing output");
 }
 
 fn main() {

@@ -65,7 +65,10 @@ impl Rule {
         if r.check() {
             r
         } else {
-            panic!("Incorrect rule given")
+            panic!(
+                "Incorrect rule for neighborhood size {} and number of states {}",
+                horizon, states
+            )
         }
     }
 
@@ -79,10 +82,14 @@ impl Rule {
         &mut self.table
     }
 
+    fn rule_size(horizon: i8, states: u8) -> u64 {
+        (states as u64).pow((2 * horizon + 1).pow(2).try_into().unwrap())
+    }
+
     /// Create a random rule with uniformly sampled transitions.
     pub fn random(horizon: i8, states: u8) -> Rule {
         let mut rng = rand::thread_rng();
-        let big_bound: u64 = (states as u64).pow((2 * horizon + 1).pow(2).try_into().unwrap());
+        let big_bound: u64 = Rule::rule_size(horizon, states);
         let table: Vec<u8> = (0..big_bound).map(|_| rng.gen_range(0..states)).collect();
         Rule {
             horizon,
@@ -107,7 +114,7 @@ impl Rule {
                 Some(*acc)
             })
             .collect();
-        let big_bound: u64 = (states as u64).pow((2 * horizon + 1).pow(2).try_into().unwrap());
+        let big_bound: u64 = Rule::rule_size(horizon, states);
         let table: Vec<u8> = (0..big_bound)
             .map(|_| rand_state(&lambdas, states))
             .collect();
@@ -164,6 +171,10 @@ impl Rule {
     }
 
     /// Write a compressed representation of the rule to a specified filename.
+    /// The resulting file contains the zlib compressed bytes of the rule.
+    ///
+    ///
+    ///
     /// ```
     /// use rust_ca::rule::Rule;
     ///
@@ -194,8 +205,7 @@ impl Rule {
     /// assert!(!rule.check());
     /// ```
     pub fn check(&self) -> bool {
-        self.table.len() as u64
-            == (self.states as u64).pow((2 * self.horizon + 1).pow(2).try_into().unwrap())
+        self.table.len() as u64 == Rule::rule_size(self.horizon, self.states)
     }
 
     /// Returns the game of life rule.
@@ -220,6 +230,99 @@ impl Rule {
     pub fn gol() -> Self {
         Rule::new(1, 2, utils::GOL.to_vec())
     }
+
+    /// Symmetrize a rule
+    pub fn symmetrize(&mut self) {
+        let states = self.states;
+        let side = (self.horizon * 2 + 1) as usize;
+        let table = self.table_mut();
+        let size = table.len();
+        let mut book_keep = vec![false; size];
+
+        for position in 0..size as u64 {
+            if book_keep[position as usize] {
+                continue;
+            }
+            let position_90 =
+                reverse_rows_position(transpose_position(position, states, side), states, side)
+                    as usize;
+            let position_270 =
+                reverse_cols_position(transpose_position(position, states, side), states, side)
+                    as usize;
+            let position_180 =
+                reverse_cols_position(reverse_rows_position(position, states, side), states, side)
+                    as usize;
+            let position_reverse_r = reverse_rows_position(position, states, side) as usize;
+            let position_reverse_c = reverse_cols_position(position, states, side) as usize;
+            let position_tr = transpose_position(position, states, side) as usize;
+            let position_atr = transpose_position(
+                reverse_rows_position(transpose_position(position, states, side), states, side),
+                states,
+                side,
+            ) as usize;
+
+            let position = position as usize;
+            book_keep[position] = true;
+            book_keep[position_180] = true;
+            book_keep[position_90] = true;
+            book_keep[position_270] = true;
+            book_keep[position_reverse_c] = true;
+            book_keep[position_reverse_r] = true;
+            book_keep[position_tr] = true;
+            book_keep[position_atr] = true;
+
+            table[position_180] = table[position];
+            table[position_90] = table[position];
+            table[position_270] = table[position];
+            table[position_reverse_c] = table[position];
+            table[position_reverse_r] = table[position];
+            table[position_tr] = table[position];
+            table[position_atr] = table[position];
+        }
+    }
+}
+
+fn transpose_position(position: u64, states: u8, side: usize) -> u64 {
+    let mut new_pos = position;
+    for i in 0..side {
+        for j in i + 1..side {
+            let pow = (states as u64).pow((i * side + j) as u32);
+            let pow_tr = (states as u64).pow((j * side + i) as u32);
+            let state_a = (position / pow) % (states as u64);
+            let state_b = (position / pow_tr) % (states as u64);
+            new_pos += state_a * pow_tr + state_b * pow;
+            new_pos -= state_a * pow + state_b * pow_tr;
+        }
+    }
+    new_pos
+}
+
+fn reverse_cols_position(position: u64, states: u8, side: usize) -> u64 {
+    let mut new_pos = position;
+    for i in 0..side {
+        for j in 0..side {
+            let pow = (states as u64).pow((i * side + j) as u32);
+            let pow_inv = (states as u64).pow((i * side + side - j - 1) as u32);
+            let state = (position / pow) % (states as u64);
+            new_pos += state * pow_inv;
+            new_pos -= state * pow;
+        }
+    }
+    new_pos
+}
+
+fn reverse_rows_position(position: u64, states: u8, side: usize) -> u64 {
+    let mut new_pos = position;
+    for i in 0..side {
+        for j in 0..side {
+            let pow = (states as u64).pow((i * side + j) as u32);
+            let pow_inv = (states as u64).pow(((side - i - 1) * side + j) as u32);
+            let state = (position / pow) % (states as u64);
+            new_pos += state * pow_inv;
+            new_pos -= state * pow;
+        }
+    }
+    new_pos
 }
 
 impl Index<usize> for Rule {
@@ -249,7 +352,10 @@ fn rand_state(lambdas: &[f64], states: u8) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use super::Rule;
+    use crate::rule::reverse_cols_position;
+    use crate::rule::reverse_rows_position;
+
+    use super::{transpose_position, Rule};
 
     #[test]
     fn should_check_correct_rule_size() {
@@ -270,5 +376,87 @@ mod tests {
         assert!(rule.check());
         rule.table.push(0);
         assert!(!rule.check());
+    }
+
+    #[test]
+    fn encode_decode() -> Result<(), std::io::Error> {
+        let rule = Rule::random(1, 3);
+        let table_before = rule.table().clone();
+        rule.to_file("test_encode_decode.rule")?;
+
+        let rule_after = Rule::from_file("test_encode_decode.rule")?;
+        assert!(rule_after
+            .table()
+            .iter()
+            .zip(table_before.iter())
+            .all(|(a, b)| a == b));
+        Ok(())
+    }
+
+    // The numbers represent position of 2D neighborhoods CA and their transpose.
+    #[test]
+    fn should_transpose() {
+        assert_eq!(transpose_position(86, 2, 3), 92);
+        assert_eq!(transpose_position(342, 2, 3), 348);
+        assert_eq!(transpose_position(70, 2, 3), 76);
+
+        assert_eq!(transpose_position(31759728, 2, 5), 18698958);
+        assert_eq!(transpose_position(14260627, 2, 5), 10049977);
+
+        assert_eq!(transpose_position(663423371124, 3, 5), 573900715524);
+    }
+
+    #[test]
+    fn should_reverse_cols() {
+        assert_eq!(reverse_cols_position(4808293, 2, 5), 4519732);
+        assert_eq!(reverse_cols_position(4562286, 2, 5), 5075790);
+
+        assert_eq!(reverse_cols_position(400932635627, 3, 5), 205325034491);
+    }
+
+    #[test]
+    fn should_reverse_rows() {
+        assert_eq!(reverse_rows_position(236, 2, 3), 299);
+
+        assert_eq!(reverse_rows_position(30692772, 2, 5), 4642077);
+
+        assert_eq!(reverse_rows_position(642938107354, 3, 5), 621701730346);
+    }
+
+    #[test]
+    fn gol_is_symmetric() {
+        let mut gol = Rule::gol();
+        let table_before = gol.table.clone();
+        gol.symmetrize();
+
+        assert!(gol
+            .table()
+            .iter()
+            .zip(table_before.iter())
+            .all(|(a, b)| a == b));
+    }
+
+    #[test]
+    fn symmetrization_is_idempotent() {
+        let mut rule = Rule::random(1, 2);
+        rule.symmetrize();
+        let table_before = rule.table.clone();
+        rule.symmetrize();
+        assert!(rule
+            .table()
+            .iter()
+            .zip(table_before.iter())
+            .all(|(a, b)| a == b));
+
+
+        let mut rule = Rule::random(1, 3);
+        rule.symmetrize();
+        let table_before = rule.table.clone();
+        rule.symmetrize();
+        assert!(rule
+            .table()
+            .iter()
+            .zip(table_before.iter())
+            .all(|(a, b)| a == b));
     }
 }

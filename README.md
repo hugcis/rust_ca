@@ -6,6 +6,22 @@ automata (with relatively small neighborhoods).
 
 The tool outputs CA simulations in the form of GIF files.
 
+## Install the tool 
+
+Run the following command to build:
+```
+cargo install rust_ca
+```
+
+To use the library in a Rust project add the following to your `Cargo.toml` dependencies:
+
+```toml
+[dependencies]
+rust_ca = "0.2.1"
+```
+
+`
+
 ## Example
 
 The following command will run a CA with a rule numbered `16855021099980290151`.
@@ -20,13 +36,20 @@ This results in the following `test.gif` file:
 
 ![Example CA GIF](assets/test.gif)
 
-## Build the tool 
+### Generate random CA GIFs
 
-Run the following command to build:
-```
+**Warning:** This command create 200 GIFs for a total size of ~500MB.
+``` sh
 cargo build --release
+mkdir rgen
+for i in $(seq 0 200); do
+target/release/rust_ca -n 4 -k 10 -s 128 --delay 0 -t 2400 --rotate 1 --symmetric > rgen/test_$i.gif
+done;
+
 ```
 
+
+## CLI
 The CLI usage is: 
 ```
 Rust CA 0.1.0

@@ -3,6 +3,7 @@
 use crate::automaton::AutomatonImpl;
 use gif::{Encoder, Frame};
 use std::fs::File;
+use std::io::{self, Write};
 use std::path::Path;
 
 /// Write the CA state to a GIF file.
@@ -14,7 +15,8 @@ pub fn write_to_gif_file<P: AsRef<Path>, T>(
     skip: u32,
     delay: u16,
     rotate: u8,
-) where
+) -> Result<(), io::Error>
+where
     T: AutomatonImpl,
 {
     let size = autom.size() as u16;
@@ -22,9 +24,9 @@ pub fn write_to_gif_file<P: AsRef<Path>, T>(
     let states = autom.states();
 
     let mut im_file = if let Some(path) = path {
-        File::create(path).unwrap()
+        Box::new(File::create(path)?) as Box<dyn Write>
     } else {
-        File::create(Path::new("test.gif")).unwrap()
+        Box::new(io::stdout()) as Box<dyn Write>
     };
 
     let mut g = Encoder::new(&mut im_file, scaled_size, scaled_size, &[]).unwrap();
@@ -43,7 +45,8 @@ pub fn write_to_gif_file<P: AsRef<Path>, T>(
     for frame in frames {
         g.write_frame(&frame).expect("Error writing frame");
     }
-    println!();
+    eprintln!();
+    Ok(())
 }
 
 fn make_palette(states: u8, rotate: u8) -> Vec<u8> {
