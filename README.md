@@ -8,13 +8,12 @@ The tool outputs CA simulations in the form of GIF files.
 
 ## Install the tool 
 
-Run the following command to build:
+Run the following command to install on your system:
 ```
 cargo install rust_ca
 ```
 
-To use the library in a Rust project add the following to your `Cargo.toml` dependencies:
-
+To use the library in another Rust project add the following to your `Cargo.toml` dependencies:
 ```toml
 [dependencies]
 rust_ca = "0.2.1"
@@ -35,6 +34,9 @@ This results in the following `test.gif` file:
 ![Example CA GIF](assets/test.gif)
 
 ### Generate random CA GIFs
+
+This generates 200 distinct CA ran for 2400 steps (only showing one in 10) with
+4 states.
 
 **Warning:** This command create 200 GIFs for a total size of ~500MB.
 ``` sh
