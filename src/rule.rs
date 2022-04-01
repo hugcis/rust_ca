@@ -2,8 +2,10 @@
 extern crate rand_distr;
 mod utils;
 
+use std::collections::hash_map::DefaultHasher;
 use std::convert::TryInto;
 use std::fs::File;
+use std::hash::{Hash, Hasher};
 use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
@@ -45,7 +47,7 @@ impl FromStr for SamplingMode {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 /// The rule object. Represents a cellular automaton rule.
 pub struct Rule {
     horizon: i8,
@@ -285,8 +287,6 @@ impl Rule {
             book_keep[position_tr] = true;
             book_keep[position_atr] = true;
 
-
-
             table[position_180] = table[position];
             table[position_90] = table[position];
             table[position_270] = table[position];
@@ -295,6 +295,22 @@ impl Rule {
             table[position_tr] = table[position];
             table[position_atr] = table[position];
         }
+    }
+
+    /// Returns the id of the rule, a `u64` number uniquely (up to hash
+    /// collisions) identifying the rule.
+    ///
+    /// ```
+    /// use rust_ca::rule::Rule;
+    ///
+    /// let rule = Rule::random(1, 2);
+    ///
+    /// println!("{}", rule.id());
+    /// ```
+    pub fn id(&self) -> u64 {
+        let mut s = DefaultHasher::new();
+        self.hash(&mut s);
+        s.finish()
     }
 }
 
@@ -463,7 +479,6 @@ mod tests {
             .iter()
             .zip(table_before.iter())
             .all(|(a, b)| a == b));
-
 
         let mut rule = Rule::random(1, 3);
         rule.symmetrize();

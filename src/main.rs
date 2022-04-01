@@ -5,7 +5,7 @@
 use core::panic;
 use std::path::Path;
 
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 
 use rust_ca::automaton::AutomatonImpl;
 use rust_ca::automaton::{Automaton, TiledAutomaton, TILE_SIZE};
@@ -21,6 +21,11 @@ use rust_ca::rule::{self, SamplingMode};
     version = "0.2.2",
     author = "Hugo Cisneros <hmj.cisneros@gmail.com>"
 )]
+#[clap(group(
+            ArgGroup::new("write_rule")
+                .required(false)
+                .args(&["write_rule", "write_to_id"]),
+        ))]
 struct Opts {
     /// The size of the 2D CA grid
     #[clap(short, long, default_value = "128")]
@@ -38,14 +43,16 @@ struct Opts {
     horizon: i8,
     #[clap(long, default_value = "10")]
     delay: u16,
-    /// File to read a rule from or write to. The file must contain a valid rule
+    /// File to read a rule from. The file must contain a valid rule
     /// for the corresponding number of states.
     #[clap(short, long)]
     file: Option<String>,
-    /// File to read a rule from or write to. The file must contain a valid rule
-    /// for the corresponding number of states.
+    /// File to write the rule to.
     #[clap(short, long)]
     write_rule: Option<String>,
+    /// Write the rule to a file $ID.rule
+    #[clap(long)]
+    write_to_id: bool,
     /// Specify one of the implemented CA rule.
     #[clap(short, long, possible_values = &["GOL"])]
     rule: Option<String>,
@@ -97,6 +104,12 @@ fn make_new_rule<P: AsRef<Path>>(
     Ok(rule)
 }
 
+enum RuleWrite {
+    WriteToFile(String),
+    None,
+    WriteToID,
+}
+
 fn parse_opts(opts: Opts) -> Result<SimulationOpts, std::io::Error> {
     let scale = if opts.size > 512 {
         2
@@ -111,13 +124,36 @@ fn parse_opts(opts: Opts) -> Result<SimulationOpts, std::io::Error> {
             _ => panic!("Unknown rule name"),
         }
     } else {
-        match (opts.file, opts.write_rule) {
-            (Some(file), _) => Rule::from_file(&file).unwrap(),
-            (None, Some(write)) => {
+        let write_rule = if opts.write_to_id {
+            RuleWrite::WriteToID
+        } else {
+            opts.write_rule
+                .as_ref()
+                .map_or(RuleWrite::None, |s| RuleWrite::WriteToFile(s.to_string()))
+        };
+        match (opts.file, write_rule) {
+            (Some(file), RuleWrite::WriteToID) => {
+                let r = Rule::from_file(&file).unwrap();
+                r.to_file(format!("{}.rule", r.id()))?;
+                r
+            }
+            (Some(file), RuleWrite::WriteToFile(s)) => {
+                let r = Rule::from_file(&file).unwrap();
+                r.to_file(s)?;
+                r
+            }
+            (Some(file), RuleWrite::None) => Rule::from_file(&file).unwrap(),
+            (None, RuleWrite::WriteToFile(write)) => {
                 make_new_rule(opts.rule_sampling, opts.horizon, opts.states, Some(write))?
             }
-            (None, None) => {
+            (None, RuleWrite::None) => {
                 make_new_rule::<String>(opts.rule_sampling, opts.horizon, opts.states, None)?
+            }
+            (None, RuleWrite::WriteToID) => {
+                let rule =
+                    make_new_rule::<String>(opts.rule_sampling, opts.horizon, opts.states, None)?;
+                rule.to_file(format!("{}.rule", rule.id()))?;
+                rule
             }
         }
     };

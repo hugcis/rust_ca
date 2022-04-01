@@ -14,9 +14,9 @@ exclude = ["/assets"]
 
 
 [dependencies]
-getopts = "0.2"
-gif = "0.11"
+getopts = "0.2.21"
+gif = "0.11.3"
 rand = "0.8.5"
-flate2 = "1.0"
-rand_distr = "0.4"
-clap = { version = "3.1.6", features = ["derive"] }
+flate2 = "1.0.22"
+rand_distr = "0.4.3"
+clap = { version = "3.1.7", features = ["derive"] }

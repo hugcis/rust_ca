@@ -1,8 +1,9 @@
 # Rust Cellular Automata
-[![Crates.io](https://img.shields.io/crates/v/rust_ca)](https://crates.io/crates/rust_ca)[![Rust](https://github.com/hugcis/rust_ca/actions/workflows/rust.yml/badge.svg)](https://github.com/hugcis/rust_ca/actions/workflows/rust.yml)
+[![Crates.io](https://img.shields.io/crates/v/rust_ca)](https://crates.io/crates/rust_ca)
+[![Rust](https://github.com/hugcis/rust_ca/actions/workflows/rust.yml/badge.svg)](https://github.com/hugcis/rust_ca/actions/workflows/rust.yml)
 
-This is a command line tool to simulate and search the space of simple cellular
-automata (with relatively small neighborhoods).
+This is a command-line tool and a library to simulate and search the space of simple cellular
+automata (with smallish neighborhoods).
 
 The tool outputs CA simulations in the form of GIF files.
 
@@ -21,10 +22,13 @@ rust_ca = "0.2.1"
 
 ## Example
 
-The following command will run a CA with a rule numbered `16855021099980290151`.
-The initial configuration is specified  in `exploding.pat` (by default it is
-random). The CA has 3 states and is 128x128 cells. We want the output GIF file to
-represent 2400 time steps, but displaying only 1 in 10.
+The following command will run a CA with a rule numbered `16855021099980290151`
+(you can find it in this repository).
+
+The initial configuration is specified  in `exploding.pat` (the initial
+configuration is random by default). The CA has 3 states and is 128x128 cells.
+We want the output GIF file to represent 2400 time steps, but displaying only 1
+in 10. 
 ```
 rust_ca -n 3 -f rules/3_states/16855021099980290151.map.comp \
 -p patterns/exploding.pat -k 10 -s 128 --delay 0 -t 2400 
@@ -38,7 +42,7 @@ This results in the following `test.gif` file:
 This generates 200 distinct CA ran for 2400 steps (only showing one in 10) with
 4 states.
 
-**Warning:** This command create 200 GIFs for a total size of ~500MB.
+**Warning:** This command creates 200 GIFs for a total size of ~500MB.
 ``` sh
 cargo build --release
 mkdir rgen
@@ -50,7 +54,7 @@ done;
 ```
 
 
-## CLI
+## CLI usage
 The CLI usage is: 
 ```
 Rust CA 0.2.2
