@@ -1,7 +1,7 @@
-use super::{parse_pattern, AutomatonImpl, HORIZON};
+use super::{parse_pattern, AutomatonImpl, PatternError, HORIZON};
+use crate::automaton::duplicate_array;
 use crate::rule::Rule;
 use rand::Rng;
-use crate::automaton::duplicate_array;
 
 /// The size of tiles in the tiled cellular automaton.
 pub const TILE_SIZE: usize = 257;
@@ -195,8 +195,9 @@ impl AutomatonImpl for TiledAutomaton {
                 skip,
                 steps: Some(steps),
                 ct: 0,
-            }.map(move |grid| duplicate_array(&grid, size, scale)),
-         )
+            }
+            .map(move |grid| duplicate_array(&grid, size, scale)),
+        )
     }
 
     fn size(&self) -> usize {
@@ -207,8 +208,8 @@ impl AutomatonImpl for TiledAutomaton {
         self.states
     }
 
-    fn init_from_pattern(&mut self, pattern_fname: &str) {
-        let pattern_spec = parse_pattern(pattern_fname).unwrap();
+    fn init_from_pattern(&mut self, pattern_fname: &str) -> Result<(), PatternError> {
+        let pattern_spec = parse_pattern(pattern_fname)?;
         assert!(pattern_spec.states <= self.states);
         assert!(pattern_spec.background < self.states);
         for i in self.grid_mut().iter_mut() {
@@ -231,6 +232,7 @@ impl AutomatonImpl for TiledAutomaton {
                 self.grid_mut()[tx * n_tiles + ty][x * TILE_SIZE + y] = *elem;
             }
         }
+        Ok(())
     }
 
     #[inline]
@@ -320,9 +322,9 @@ fn duplicate_array_tiled(s: &[[u8; TILE_SIZE * TILE_SIZE]], size: usize, scale: 
 
 #[cfg(test)]
 mod tests {
-    use crate::rule::Rule;
     use crate::automaton::AutomatonImpl;
     use crate::automaton::TiledAutomaton;
+    use crate::rule::Rule;
     use test::Bencher;
 
     fn get_random_tiled_auto(size: usize, states: u8) -> TiledAutomaton {

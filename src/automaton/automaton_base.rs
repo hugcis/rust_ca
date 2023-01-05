@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-use super::{AutomatonImpl, HORIZON};
+use super::{AutomatonImpl, PatternError, HORIZON};
 use crate::automaton::duplicate_array;
 use crate::{automaton::parse_pattern, rule::Rule};
 use rand::Rng;
@@ -140,8 +140,8 @@ impl AutomatonImpl for Automaton {
         self.states
     }
 
-    fn init_from_pattern(&mut self, pattern_fname: &str) {
-        let pattern_spec = parse_pattern(pattern_fname).unwrap();
+    fn init_from_pattern(&mut self, pattern_fname: &str) -> Result<(), PatternError> {
+        let pattern_spec = parse_pattern(pattern_fname)?;
         assert!(pattern_spec.states <= self.states);
         assert!(pattern_spec.background < self.states);
         for i in self.grid_mut().iter_mut() {
@@ -157,6 +157,7 @@ impl AutomatonImpl for Automaton {
                 self.grid_mut()[idx] = *elem;
             }
         }
+        Ok(())
     }
 
     #[inline]

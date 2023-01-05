@@ -186,7 +186,7 @@ enum RuleWrite {
 /// the options defined in `opts`.
 fn generate_gif_from_init<T: AutomatonImpl>(a: &mut T, opts: &SimulationOpts) {
     if let Some(fname) = &opts.pattern {
-        a.init_from_pattern(fname);
+        a.init_from_pattern(fname).unwrap();
     } else {
         a.random_init();
     }
