@@ -26,7 +26,7 @@ use rust_ca::rule::{self, SamplingMode};
                 .required(false)
                 .args(&["write_rule", "write_to_id"]),
         ))]
-struct Opts {
+struct CLIOpts {
     /// The size of the 2D CA grid
     #[clap(short, long, default_value = "128")]
     size: u16,
@@ -87,6 +87,78 @@ struct SimulationOpts {
     output: Option<String>,
 }
 
+impl SimulationOpts {
+    /// Parse options from clap and construct a SimulationOpts object.
+    fn from_clap_opts(opts: CLIOpts) -> Result<SimulationOpts, std::io::Error> {
+        let scale = if opts.size > 512 {
+            2
+        } else if opts.size > 256 {
+            3
+        } else {
+            4
+        };
+        let mut rule = if let Some(rule_name) = opts.rule {
+            match rule_name.as_str() {
+                "GOL" => Rule::gol(),
+                _ => panic!("Unknown rule name"),
+            }
+        } else {
+            let write_rule = if opts.write_to_id {
+                RuleWrite::WriteToID
+            } else {
+                opts.write_rule
+                    .as_ref()
+                    .map_or(RuleWrite::None, |s| RuleWrite::WriteToFile(s.to_string()))
+            };
+            match (opts.file, write_rule) {
+                (Some(file), RuleWrite::WriteToID) => {
+                    let r = Rule::from_file(&file).unwrap();
+                    r.to_file(format!("{}.rule", r.id()))?;
+                    r
+                }
+                (Some(file), RuleWrite::WriteToFile(s)) => {
+                    let r = Rule::from_file(&file).unwrap();
+                    r.to_file(s)?;
+                    r
+                }
+                (Some(file), RuleWrite::None) => Rule::from_file(&file).unwrap(),
+                (None, RuleWrite::WriteToFile(write)) => {
+                    make_new_rule(opts.rule_sampling, opts.horizon, opts.states, Some(write))?
+                }
+                (None, RuleWrite::None) => {
+                    make_new_rule::<String>(opts.rule_sampling, opts.horizon, opts.states, None)?
+                }
+                (None, RuleWrite::WriteToID) => {
+                    let rule = make_new_rule::<String>(
+                        opts.rule_sampling,
+                        opts.horizon,
+                        opts.states,
+                        None,
+                    )?;
+                    rule.to_file(format!("{}.rule", rule.id()))?;
+                    rule
+                }
+            }
+        };
+        if opts.symmetric {
+            rule.symmetrize();
+        }
+        Ok(SimulationOpts {
+            size: opts.size,
+            scale,
+            states: opts.states,
+            _horizon: opts.horizon,
+            steps: opts.steps,
+            skip: opts.skip,
+            rule,
+            pattern: opts.pattern,
+            delay: opts.delay,
+            rotate: opts.rotate,
+            output: opts.output,
+        })
+    }
+}
+
 fn make_new_rule<P: AsRef<Path>>(
     sampling_mode: SamplingMode,
     horizon: i8,
@@ -110,71 +182,6 @@ enum RuleWrite {
     WriteToID,
 }
 
-fn parse_opts(opts: Opts) -> Result<SimulationOpts, std::io::Error> {
-    let scale = if opts.size > 512 {
-        2
-    } else if opts.size > 256 {
-        3
-    } else {
-        4
-    };
-    let mut rule = if let Some(rule_name) = opts.rule {
-        match rule_name.as_str() {
-            "GOL" => Rule::gol(),
-            _ => panic!("Unknown rule name"),
-        }
-    } else {
-        let write_rule = if opts.write_to_id {
-            RuleWrite::WriteToID
-        } else {
-            opts.write_rule
-                .as_ref()
-                .map_or(RuleWrite::None, |s| RuleWrite::WriteToFile(s.to_string()))
-        };
-        match (opts.file, write_rule) {
-            (Some(file), RuleWrite::WriteToID) => {
-                let r = Rule::from_file(&file).unwrap();
-                r.to_file(format!("{}.rule", r.id()))?;
-                r
-            }
-            (Some(file), RuleWrite::WriteToFile(s)) => {
-                let r = Rule::from_file(&file).unwrap();
-                r.to_file(s)?;
-                r
-            }
-            (Some(file), RuleWrite::None) => Rule::from_file(&file).unwrap(),
-            (None, RuleWrite::WriteToFile(write)) => {
-                make_new_rule(opts.rule_sampling, opts.horizon, opts.states, Some(write))?
-            }
-            (None, RuleWrite::None) => {
-                make_new_rule::<String>(opts.rule_sampling, opts.horizon, opts.states, None)?
-            }
-            (None, RuleWrite::WriteToID) => {
-                let rule =
-                    make_new_rule::<String>(opts.rule_sampling, opts.horizon, opts.states, None)?;
-                rule.to_file(format!("{}.rule", rule.id()))?;
-                rule
-            }
-        }
-    };
-    if opts.symmetric {
-        rule.symmetrize();
-    }
-    Ok(SimulationOpts {
-        size: opts.size,
-        scale,
-        states: opts.states,
-        _horizon: opts.horizon,
-        steps: opts.steps,
-        skip: opts.skip,
-        rule,
-        pattern: opts.pattern,
-        delay: opts.delay,
-        rotate: opts.rotate,
-        output: opts.output,
-    })
-}
-
 /// Generate a gif file from a automaton implementing AutomatonImpl. Will use
 /// the options defined in `opts`.
 fn generate_gif_from_init<T: AutomatonImpl>(a: &mut T, opts: &SimulationOpts) {
@@ -195,14 +202,19 @@ fn generate_gif_from_init<T: AutomatonImpl>(a: &mut T, opts: &SimulationOpts) {
     .expect("Error writing output");
 }
 
+/// Main CLI entrypoint.
 fn main() {
-    let opts = parse_opts(Opts::parse()).unwrap();
+    let opts: SimulationOpts = SimulationOpts::from_clap_opts(CLIOpts::parse()).unwrap();
+    // If the size of the CA is a multiple of the TILE_SIZE, use the tiled
+    // implementation.
     if opts.size as usize % (TILE_SIZE - 1) == 0 {
         generate_gif_from_init(
             &mut TiledAutomaton::new(opts.states, opts.size.into(), opts.rule.clone()),
             &opts,
         );
-    } else {
+    }
+    // Otherwise use the default implementation.
+    else {
         generate_gif_from_init(
             &mut Automaton::new(opts.states, opts.size.into(), opts.rule.clone()),
             &opts,
