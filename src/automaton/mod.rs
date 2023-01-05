@@ -20,7 +20,7 @@ struct PatternSpec {
 
 /// An automaton must implement this trait.
 pub trait AutomatonImpl {
-    /// Make a new cellular automaton with a given grid size, number of states per cells and rule.
+    /// Makes a new cellular automaton with a given grid size, number of states per cells and rule.
     ///
     /// ```
     /// use rust_ca::rule::Rule;
@@ -29,6 +29,19 @@ pub trait AutomatonImpl {
     /// let automaton = Automaton::new(3, 128, Rule::random(1, 2));
     /// ```
     fn new(states: u8, size: usize, rule: crate::rule::Rule) -> Self;
+    /// Creates a CA of a given size from a rule.
+    /// ```
+    /// # use rust_ca::rule::Rule;
+    /// # use rust_ca::automaton::Automaton;
+    /// # use rust_ca::automaton::AutomatonImpl;
+    /// let automaton = Automaton::from_rule(Rule::random(1, 2), 128);
+    /// ```
+    fn from_rule(rule: crate::rule::Rule, size: usize) -> Self
+    where
+        Self: Sized,
+    {
+        Self::new(rule.states, size, rule)
+    }
     /// Returns an boxed iterator of CA steps, skipping every `skip` step and
     /// scaling the grid by a factor `scale`.
     fn skipped_iter(&mut self, steps: u32, skip: u32, scale: u16) -> StepIteratorBox;
@@ -40,13 +53,13 @@ pub trait AutomatonImpl {
     fn iter(&mut self, steps: u32) -> StepIteratorBox {
         self.skipped_iter(steps, 0, 1)
     }
-    /// Initialize all the cells of the grid from a pattern file.
+    /// Initializes all the cells of the grid from a pattern file.
     fn init_from_pattern(&mut self, pattern_fname: &str);
-    /// Perform a single step update of the CA grid according to the rule.
+    /// Performs a single step update of the CA grid according to the rule.
     fn update(&mut self);
-    /// Randomly set all the cells of the cellular automaton grid
+    /// Randomly sets all the cells of the cellular automaton grid
     fn random_init(&mut self);
-    /// Get the current grid.
+    /// Gets the current grid.
     fn grid(&self) -> Vec<u8>;
 }
 

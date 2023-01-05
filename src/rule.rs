@@ -1,4 +1,39 @@
-//! Functions and struct to create and manipulate CA rules.
+//! This module contains functions and struct to create and manipulate CA rules.
+//!
+//! ## Sampling a random rule
+//! A 2 states random CA rule is created as follows:
+//! ```
+//! use rust_ca::rule::Rule;
+//!
+//! let mut rule = Rule::random(1, 2);
+//! ```
+//! If needed, the random rule can be made symmetric (all symmetries of the input
+//! position will lead to the same output state), like so
+//! ```
+//! # use rust_ca::rule::Rule;
+//! # let mut rule = Rule::random(1, 2);
+//! rule.symmetrize();
+//! ```
+//!
+//! The default random sampling is uniform, creating all possible CA rules with
+//! equal probability. For more interesting rules, one may use Dirichlet-based
+//! sampling of the rules (biased towards a single state, [read
+//! more](https://hugocisneros.com/notes/cellular_automata/#dirichlet-based-sampling)).
+//!
+//! This method requires an additional parameter `alpha` controlling how biased
+//! the sampling will be.
+//!
+//! ```
+//! # use rust_ca::rule::Rule;
+//! let rule = Rule::random_dirichlet(1, 2, Some(0.3));
+//! ```
+//!
+//! ## Built-in rules
+//! You can also use a built-in rule like Game of Life:
+//! ```
+//! # use rust_ca::rule::Rule;
+//! let gol_rule = Rule::gol();
+//! ```
 extern crate rand_distr;
 mod utils;
 
@@ -6,21 +41,16 @@ use std::collections::hash_map::DefaultHasher;
 use std::convert::TryInto;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
-use std::io::Read;
-use std::io::Seek;
-use std::io::SeekFrom;
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::ops::{Index, IndexMut};
 use std::path::Path;
 use std::str::FromStr;
 
-use flate2::read::GzDecoder;
-use flate2::read::ZlibDecoder;
+use flate2::read::{GzDecoder, ZlibDecoder};
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use rand::Rng;
-use rand_distr::Dirichlet;
-use rand_distr::Distribution;
+use rand_distr::{Dirichlet, Distribution};
 
 const ALPHA: f64 = 0.2;
 const GZIP_H: [u8; 9] = [0x1f, 0x8b, 0x08, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
@@ -50,8 +80,10 @@ impl FromStr for SamplingMode {
 #[derive(Debug, Clone, Hash)]
 /// The rule object. Represents a cellular automaton rule.
 pub struct Rule {
-    horizon: i8,
-    states: u8,
+    /// The size of the neighborhood.
+    pub horizon: i8,
+    /// The number of cell states the rule expects
+    pub states: u8,
     table: Vec<u8>,
 }
 
@@ -314,6 +346,9 @@ impl Rule {
     }
 }
 
+/// A position is a unsigned integer (`u64`) which represents a single
+/// configuration of the `side`x`side` square of cells with states ranging from
+/// 0 to `states`. This function transposes the `side`x`side` position.
 fn transpose_position(position: u64, states: u8, side: usize) -> u64 {
     let mut new_pos = position;
     for i in 0..side {
@@ -329,6 +364,7 @@ fn transpose_position(position: u64, states: u8, side: usize) -> u64 {
     new_pos
 }
 
+/// This function reverses the columns of a position represented by a u64.
 fn reverse_cols_position(position: u64, states: u8, side: usize) -> u64 {
     let mut new_pos = position;
     for i in 0..side {
@@ -343,6 +379,7 @@ fn reverse_cols_position(position: u64, states: u8, side: usize) -> u64 {
     new_pos
 }
 
+/// This function reverses the rows of a position represented by a u64.
 fn reverse_rows_position(position: u64, states: u8, side: usize) -> u64 {
     let mut new_pos = position;
     for i in 0..side {
